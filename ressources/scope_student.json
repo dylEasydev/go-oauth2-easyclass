@@ -1,0 +1,33 @@
+{
+    "data":[
+        {
+            "scopeName":"deleted:profil",
+            "scopeDescript":"permissions de supprimer son profil"
+        },
+        {
+            "scopeName":"updated:profil",
+            "scopeDescript":"permissions de mis à jour de son profil"
+        },
+        {
+            "scopeName":"subscribed:domain",
+            "scopeDescript":"permissions pour s'abonner à un domaine"
+    	},
+        {
+            "scopeName":"deSubscribed:domain",
+            "scopeDescript":"permissions pour se désabonner d'un domaine"
+        },
+                 
+    	{
+             "scopeName":"updated:user",
+             "scopeDescript":"permissions de mis à jour de son compte"
+    	},
+    	{
+            "scopeName":"subscribed:matter",
+            "scopeDescript":"permissions pour s'abonner à une matière"
+    	},
+    	{
+            "scopeName":"deSubscribed:matter",
+            "scopeDescript":"permissions pour se desabonner à une matière"
+    	}
+    ]
+}
