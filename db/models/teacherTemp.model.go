@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 
+	"github.com/dylEasydev/go-oauth2-easyclass/db/query"
 	"github.com/dylEasydev/go-oauth2-easyclass/validators"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -23,7 +24,7 @@ func (teacher *TeacherTemp) BeforeSave(tx *gorm.DB) (err error) {
 	if err = validators.ValidateStruct(teacher); err != nil {
 		return
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(teacher.Password), 10)
+	hash, err := bcrypt.GenerateFromPassword([]byte(teacher.Password), Cout_hash)
 	if err != nil {
 		return
 	}
@@ -38,7 +39,7 @@ func (teacher *TeacherTemp) AfterCreate(tx *gorm.DB) (err error) {
 		VerifiableType: teacher.TableName(),
 	}
 
-	if err = tx.Create(&code).Error; err != nil {
+	if err = query.QueryCreate(tx, &code); err != nil {
 		return err
 	}
 
@@ -56,8 +57,8 @@ func (teacher *TeacherTemp) SavePerm(tx *gorm.DB) error {
 			SubjectName: teacher.SubjectName,
 		},
 	}
-	if err := tx.Create(&teacherWait).Error; err != nil {
-		return fmt.Errorf("erreur de création de l'enseignat en attente: %w", err)
+	if err := query.QueryCreate(tx, &teacherWait); err != nil {
+		return fmt.Errorf("erreur de création de l'enseignant en attente: %w", err)
 	}
 	return nil
 }

@@ -10,7 +10,7 @@ import (
 
 // strcutures des permission d'utilisateur en fonction des role
 type Scope struct {
-	ID            uuid.UUID `gorm:"primarykey;type:uuid;default:uuid_generate_v4()"`
+	ID            uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	ScopeName     string    `gorm:"column:scopename;not null;unique" validate:"required,name"`
 	ScopeDescript string    `gorm:"column:scopedescript;"`
 

@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 
+	"github.com/dylEasydev/go-oauth2-easyclass/db/query"
 	"github.com/dylEasydev/go-oauth2-easyclass/utils"
 	"github.com/dylEasydev/go-oauth2-easyclass/validators"
 	"golang.org/x/crypto/bcrypt"
@@ -20,11 +21,14 @@ type StudentTemp struct {
 func (StudentTemp) TableName() string {
 	return "student_temps"
 }
+
+// hooks avant la sauvegarde
+// validation et hash du password
 func (student *StudentTemp) BeforeSave(tx *gorm.DB) (err error) {
 	if err = validators.ValidateStruct(student); err != nil {
 		return
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(student.Password), 10)
+	hash, err := bcrypt.GenerateFromPassword([]byte(student.Password), Cout_hash)
 	if err != nil {
 		return
 	}
@@ -33,23 +37,29 @@ func (student *StudentTemp) BeforeSave(tx *gorm.DB) (err error) {
 	return
 }
 
+// hooks après la creation de l'utilisateur
+// création du code de verfication et envoie par mail
 func (student *StudentTemp) AfterCreate(tx *gorm.DB) (err error) {
 	code := CodeVerif{
 		VerifiableID:   student.ID,
 		VerifiableType: student.TableName(),
 	}
 
-	if err = tx.Create(&code).Error; err != nil {
+	if err = query.QueryCreate(tx, &code); err != nil {
 		return err
 	}
 
 	return nil
 }
 
+// sauvegarde de l'utilisateur en tant qu'utilisteur permanent
 func (student *StudentTemp) SavePerm(tx *gorm.DB) (err error) {
+	//initialisation de la transaction
 	return tx.Transaction(func(tx *gorm.DB) error {
+		// session bd sans hooks
 		txhooks := tx.Session(&gorm.Session{SkipHooks: true})
 
+		// association de l'utilisateur à un role
 		role := Role{
 			RoleDescript: "role de l'étudiant",
 		}
@@ -67,7 +77,7 @@ func (student *StudentTemp) SavePerm(tx *gorm.DB) (err error) {
 		}
 
 		// création de l'utilisateur permanent
-		if err := txhooks.Create(&user).Error; err != nil {
+		if err := query.QueryCreate(txhooks, &user); err != nil {
 			return fmt.Errorf("erreur lors de la création de l'utilisateur: %w", err)
 		}
 
@@ -79,7 +89,7 @@ func (student *StudentTemp) SavePerm(tx *gorm.DB) (err error) {
 		}
 
 		// création de l'image de profil
-		if err := tx.Create(&image).Error; err != nil {
+		if err := query.QueryCreate(tx, &image); err != nil {
 			return fmt.Errorf("erreur lors de la création de l'image de profil: %w", err)
 		}
 
@@ -89,7 +99,7 @@ func (student *StudentTemp) SavePerm(tx *gorm.DB) (err error) {
 			VerifiableType: user.TableName(),
 		}
 
-		if err := txhooks.Create(&code).Error; err != nil {
+		if err := query.QueryCreate(txhooks, &code); err != nil {
 			return fmt.Errorf("erreur lors de la création du code de vérification: %w", err)
 		}
 

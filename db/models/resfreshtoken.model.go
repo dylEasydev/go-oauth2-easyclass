@@ -11,13 +11,13 @@ import (
 
 // strcture du jeton de rafraichissement d'authentification oauth2
 type RefreshToken struct {
-	ID     uuid.UUID `gorm:"primarykey;type:uuid;default:uuid_generate_v4()"`
+	ID     uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	Active *bool     `gorm:"default:true"`
 
 	//valeur du token de rafraichissement
 	Signature string `gorm:"unique;not null"`
 
-	RequestedAt time.Time `gorm:"type:jsonb;default:null"`
+	RequestedAt time.Time `gorm:"not null"`
 
 	//permission et grant_types demandés dans la requêtes
 	RequestedScopes pq.StringArray `gorm:"type:text[]"`
@@ -40,6 +40,7 @@ type RefreshToken struct {
 	Session   Session    `gorm:"foreignKey:SessionID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
+// implementation de l'interface Tabler
 func (RefreshToken) TableName() string {
 	return "refresh_tokens"
 }

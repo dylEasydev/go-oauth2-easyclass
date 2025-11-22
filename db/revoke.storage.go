@@ -14,19 +14,23 @@ import (
 
 func (store *Store) RevokeRefreshToken(ctx context.Context, requestID string) error {
 
-	var result models.RefreshToken
+	id, err := uuid.Parse(requestID)
+	if err != nil {
+		return fmt.Errorf("requestID invalide: %w", err)
+	}
 
-	id := uuid.MustParse(requestID)
-	if err := store.db.WithContext(ctx).
-		Where(&models.RefreshToken{ID: id}).
-		First(&result).Error; err != nil {
-		return fmt.Errorf("%w: %w", fosite.ErrNotFound, err)
+	result, err := gorm.G[models.RefreshToken](store.db).Where(&models.RefreshToken{ID: id}).First(ctx)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fosite.ErrNotFound
+		}
+		return err
 	}
 
 	result.Active = utils.PtrBool(false)
 	if err := store.db.WithContext(ctx).
 		Save(result).Error; err != nil {
-		return fmt.Errorf("erreur inalidation du refresh token: %w", err)
+		return fmt.Errorf("erreur invalidation du refresh token: %w", err)
 	}
 
 	return nil
@@ -37,12 +41,14 @@ func (store *Store) RevokeRefreshTokenMaybeGracePeriod(ctx context.Context, requ
 }
 
 func (store *Store) RevokeAccessToken(ctx context.Context, requestID string) error {
-	var result models.AccessToken
+	id, err := uuid.Parse(requestID)
+	if err != nil {
+		return fmt.Errorf("requestID invalide: %w", err)
+	}
 
-	id := uuid.MustParse(requestID)
-	if err := store.db.WithContext(ctx).
-		Where(&models.AccessToken{ID: id}).
-		First(&result).Error; err != nil {
+	result, err := gorm.G[models.AccessToken](store.db).Where(&models.AccessToken{ID: id}).First(ctx)
+
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return fosite.ErrNotFound
 		}

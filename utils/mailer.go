@@ -9,7 +9,7 @@ import (
 )
 
 // SendVerificationCode envoie un code de vérification par Gmail
-func SendVerificationCode(dest string, code string) error {
+func SendVerificationCode(dest string, code string, name string) error {
 	from := os.Getenv("COMPANING_MAIl")
 	appPassword := os.Getenv("PASSWORD_MAIL")
 	smtpHost := "smtp.gmail.com"
@@ -40,14 +40,14 @@ func SendVerificationCode(dest string, code string) error {
 	<body>
 	  <div class="box">
 	    <h1>Code de Vérification</h1>
-	    <p>Bonjour,</p>
+	    <p>Bonjour,%s</p>
 	    <p>Voici votre code de vérification :</p>
 	    <div class="code">%s</div>
 	    <p>Ce code est valable jusqu'à %s.</p>
 	    <p style="margin-top:20px; font-size:12px; color:#888;">&copy; 2025 MonApplication</p>
 	  </div>
 	</body>
-	</html>`, code, expiredAt.Format("16h04"))
+	</html>`, name, code, expiredAt.Format("16h04"))
 
 	m.SetBody("text/plain", plain)
 	m.AddAlternative("text/html", html)

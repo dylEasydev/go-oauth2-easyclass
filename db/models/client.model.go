@@ -1,7 +1,8 @@
 package models
 
+//packages models
+
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/dylEasydev/go-oauth2-easyclass/validators"
@@ -13,17 +14,18 @@ import (
 	"gorm.io/gorm"
 )
 
-// structure du client
+// db models Client pour OIDC
 type Client struct {
-	ID     uuid.UUID `gorm:"primarykey;type:uuid;default:uuid_generate_v4()"`
+	ID     uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	Active *bool     `gorm:"default:true"`
 
 	//clés secret du client
-	Secret string
+	Secret string `gorm:"not null"`
 
 	//listes des clés secrets de rotation
 	RotatedSecrets pq.StringArray `gorm:"type:text[]"`
 
+	//client public ou privé
 	Public *bool `gorm:"default:false"`
 
 	//url de redirections
@@ -33,8 +35,10 @@ type Client struct {
 	Scopes   pq.StringArray `gorm:"type:text[]"`
 	Audience pq.StringArray `gorm:"type:text[]"`
 
-	//grant de l'utilisateurs
-	Grants        pq.StringArray `validate:"required,grantallowed"`
+	//grant du client
+	Grants pq.StringArray `validate:"required,grantallowed"`
+
+	//types de la response
 	ResponseTypes pq.StringArray `validate:"required,responseallowed"`
 
 	//uri de ressources du client
@@ -46,6 +50,7 @@ type Client struct {
 	//methode d'authentification "client_secret_basic", "client_secret_post", "none", "private_key_jwt"
 	TokenEndpointAuthMethod string `validate:"required,authmethodallowed"`
 
+	// algorithme de signature des jetons assertion
 	RequestObjectSigningAlg           string `gorm:"type:text;default:'RS256'"`
 	TokenEndpointAuthSigningAlgorithm string `gorm:"type:text;default:'RS256'"`
 
@@ -58,14 +63,16 @@ type Client struct {
 	InfoClientID uuid.UUID  `gorm:"type:uuid;not null"`
 	InfoClient   InfoClient `gorm:"foreignKey:InfoClientID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 
-	//ensembel de clé public du client
+	//ensemble des clé public du client
 	Keys []ClientKey `gorm:"foreignKey:ClientID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
+// implementation de interface Tabler(pour le nom de la table)
 func (Client) TableName() string {
 	return "clients"
 }
 
+// hooks avant la sauvegarde du client
 func (client *Client) BeforeSave(tx *gorm.DB) (err error) {
 	// Validation
 	if err = validators.ValidateStruct(client); err != nil {
@@ -78,7 +85,7 @@ func (client *Client) BeforeSave(tx *gorm.DB) (err error) {
 		return nil
 	}
 
-	// Hasher le secret uniquement si ce n'est pas déjà hashé
+	// Hashe le secret uniquement si ce n'est pas déjà hashé
 	if _, err := bcrypt.Cost([]byte(client.Secret)); err != nil {
 		hash, err := bcrypt.GenerateFromPassword([]byte(client.Secret), 10)
 		if err != nil {
@@ -101,14 +108,19 @@ func (client *Client) BeforeSave(tx *gorm.DB) (err error) {
 	return nil
 }
 
+// implementation de interface client de Fosite
+
+// récupère id du client
 func (client Client) GetID() string {
 	return client.ID.String()
 }
 
+// récupère le secret du client
 func (c *Client) GetHashedSecret() []byte {
 	return []byte(c.Secret)
 }
 
+// récupères les secrets de rotation du client
 func (c *Client) GetRotatedHashes() [][]byte {
 	var secrets [][]byte
 
@@ -119,6 +131,38 @@ func (c *Client) GetRotatedHashes() [][]byte {
 	return secrets
 }
 
+func (c *Client) VerifySecret(plain string) bool {
+	// Ne pas vérifier pour les clients publics
+	if c.IsPublic() {
+		return false
+	}
+
+	// Si la méthode est "none", pas de verification de secret
+	if c.TokenEndpointAuthMethod == "none" {
+		return false
+	}
+
+	// Vérifie le secret courant s'il existe
+	if c.Secret != "" {
+		if err := bcrypt.CompareHashAndPassword([]byte(c.Secret), []byte(plain)); err == nil {
+			return true
+		}
+	}
+
+	// Vérifie les secrets de rotation
+	for _, s := range c.RotatedSecrets {
+		if s == "" {
+			continue
+		}
+		if err := bcrypt.CompareHashAndPassword([]byte(s), []byte(plain)); err == nil {
+			return true
+		}
+	}
+
+	return false
+}
+
+// récupère les url de redirection
 func (c *Client) GetRedirectURIs() []string {
 	var URIs []string
 
@@ -129,6 +173,7 @@ func (c *Client) GetRedirectURIs() []string {
 	return URIs
 }
 
+// récupères les grant_type du client
 func (c *Client) GetGrantTypes() fosite.Arguments {
 	var Grants []string
 
@@ -139,6 +184,7 @@ func (c *Client) GetGrantTypes() fosite.Arguments {
 	return Grants
 }
 
+// récupères les responses types du client
 func (c *Client) GetResponseTypes() fosite.Arguments {
 	var responses []string
 
@@ -148,6 +194,8 @@ func (c *Client) GetResponseTypes() fosite.Arguments {
 
 	return responses
 }
+
+// récupères les scope(permissions) du client
 func (c *Client) GetScopes() fosite.Arguments {
 	var Scopes []string
 
@@ -157,9 +205,13 @@ func (c *Client) GetScopes() fosite.Arguments {
 
 	return Scopes
 }
+
+// verifie si un client est  public ou non
 func (c *Client) IsPublic() bool {
 	return c.Public != nil && *c.Public
 }
+
+// récupères les permissions accorder au client
 func (c *Client) GetAudience() fosite.Arguments {
 	var Audience []string
 
@@ -169,6 +221,8 @@ func (c *Client) GetAudience() fosite.Arguments {
 
 	return Audience
 }
+
+// récupère la méthodes authentifiaction du client
 func (c *Client) GetTokenEndpointAuthMethod() string {
 	return c.TokenEndpointAuthMethod
 }
@@ -184,18 +238,16 @@ func (c *Client) GetRequestURIs() []string {
 
 }
 
+// récupère l'ensemble des clés public du client
 func (c *Client) GetJSONWebKeys() *jose.JSONWebKeySet {
 	keys := []jose.JSONWebKey{}
 	for _, ck := range c.Keys {
-		var jwk jose.JSONWebKey
-		if err := json.Unmarshal(ck.JWK, &jwk); err == nil {
-			keys = append(keys, jwk)
-		}
+		keys = append(keys, jose.JSONWebKey(ck.JWK))
 	}
 	return &jose.JSONWebKeySet{Keys: keys}
 }
 
-// URI vers le end-poin qui donne les clé JWK du client
+// URI vers le end-point qui donne les clé JWK du client
 func (c *Client) GetJSONWebKeysURI() string {
 	return "/client/jwks/" + c.ID.String()
 }

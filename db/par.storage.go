@@ -10,6 +10,7 @@ import (
 
 	"github.com/dylEasydev/go-oauth2-easyclass/db/models"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/ory/fosite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -18,30 +19,49 @@ import (
 //implementation de PARStorage
 
 func (store *Store) CreatePARSession(ctx context.Context, requestURI string, request fosite.AuthorizeRequester) error {
+	parsedID, err := uuid.Parse(request.GetID())
+	if err != nil {
+		return fmt.Errorf("request id invalide: %w", err)
+	}
 	client := request.GetClient()
+
+	clientID, err := uuid.Parse(client.GetID())
+	if err != nil {
+		return fmt.Errorf("client id invalide: %w", err)
+	}
 
 	form, err := json.Marshal(request.GetRequestForm())
 	if err != nil {
 		return fmt.Errorf("erreur de marshalling du PAR form : %w", err)
 	}
 
+	redirectUri, err := json.Marshal(request.GetRedirectURI())
+	if err != nil {
+		return fmt.Errorf("erreur de marshalling du PAR redirect URI : %w", err)
+	}
+
 	session := request.GetSession().(*models.Session)
 
-	if err = store.db.WithContext(ctx).
-		Create(session).Error; err != nil {
+	if err = gorm.G[models.Session](store.db).Create(ctx, session); err != nil {
 		return fmt.Errorf("erreur de création de la sesion pour PAR: %w", err)
 	}
 
 	data := models.PARRequest{
-		ID:         uuid.MustParse(request.GetID()),
-		RequestURI: requestURI,
-		Form:       form,
-		ClientID:   uuid.MustParse(client.GetID()),
-		SessionID:  session.ID,
+		ID:                parsedID,
+		RequestURI:        requestURI,
+		RequestedAt:       request.GetRequestedAt().UTC(),
+		Form:              form,
+		RequestedScopes:   pq.StringArray(request.GetRequestedScopes()),
+		GrantedScopes:     pq.StringArray(request.GetGrantedScopes()),
+		ClientID:          clientID,
+		SessionID:         session.ID,
+		RequestedAudience: pq.StringArray(request.GetRequestedAudience()),
+		GrantedAudience:   pq.StringArray(request.GetGrantedAudience()),
+		RedirectURI:       redirectUri,
+		ResponseMode:      string(request.GetResponseMode()),
 	}
 
-	if err = store.db.WithContext(ctx).
-		Create(&data).Error; err != nil {
+	if err = gorm.G[models.PARRequest](store.db).Create(ctx, &data); err != nil {
 		return fmt.Errorf("erreur de création de PAR request: %w", err)
 	}
 
@@ -49,13 +69,9 @@ func (store *Store) CreatePARSession(ctx context.Context, requestURI string, req
 }
 
 func (store *Store) GetPARSession(ctx context.Context, requestURI string) (fosite.AuthorizeRequester, error) {
-	var par models.PARRequest
 
-	if err := store.db.WithContext(ctx).
-		Preload("Session.User").
-		Preload(clause.Associations).
-		Where(&models.PARRequest{RequestURI: requestURI}).
-		First(&par).Error; err != nil {
+	par, err := gorm.G[models.PARRequest](store.db).Preload("Session.User", nil).Preload(clause.Associations, nil).Where(&models.PARRequest{RequestURI: requestURI}).First(ctx)
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fosite.ErrNotFound
 		}
@@ -63,34 +79,43 @@ func (store *Store) GetPARSession(ctx context.Context, requestURI string) (fosit
 	}
 
 	var form url.Values
-	err := json.Unmarshal(par.Form, &form)
+	var redirectUri url.URL
+	err = json.Unmarshal(par.Form, &form)
 	if err != nil {
 		return nil, fmt.Errorf("erreur de unmasharlling du formulaire : %w", err)
 	}
-
+	err = json.Unmarshal(par.RedirectURI, &redirectUri)
+	if err != nil {
+		return nil, fmt.Errorf("erreur de unmasharlling du redirectURI : %w", err)
+	}
 	rq := &fosite.AuthorizeRequest{
 		Request: fosite.Request{
-			ID:          par.ID.String(),
-			RequestedAt: time.Now(),
-			Client:      &par.Client,
-			Form:        form,
-			Session:     &par.Session,
+			ID:                par.ID.String(),
+			RequestedAt:       par.RequestedAt,
+			Client:            &par.Client,
+			RequestedScope:    fosite.Arguments(par.RequestedScopes),
+			GrantedScope:      fosite.Arguments(par.GrantedScopes),
+			Form:              form,
+			Session:           &par.Session,
+			RequestedAudience: fosite.Arguments(par.RequestedAudience),
+			GrantedAudience:   fosite.Arguments(par.GrantedAudience),
 		},
+		ResponseTypes: par.Client.GetResponseTypes(),
+		RedirectURI:   &redirectUri,
+		ResponseMode:  fosite.ResponseModeType(par.ResponseMode),
 	}
 
 	if par.Used {
 		return rq, fosite.ErrInvalidRequest.WithHint("ce PAR request est déjà utilisé")
 	}
-	if time.Now().After(par.ExpiresAt) {
+	if time.Now().UTC().After(par.ExpiresAt) {
 		return nil, fosite.ErrInvalidRequest.WithHint("ce PAR request est expiré.")
 	}
 
 	return rq, nil
 }
 func (store *Store) DeletePARSession(ctx context.Context, requestURI string) (err error) {
-	if err := store.db.WithContext(ctx).
-		Where(&models.PARRequest{RequestURI: requestURI}).
-		Delete(&models.PARRequest{}).Error; err != nil {
+	if _, err := gorm.G[models.PARRequest](store.db.Unscoped()).Where(&models.PARRequest{RequestURI: requestURI}).Delete(ctx); err != nil {
 		return fmt.Errorf("erreur de supression du PAR: %w", err)
 	}
 

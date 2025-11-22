@@ -1,5 +1,7 @@
 package db
 
+//pacakeges db
+
 import (
 	"fmt"
 	"log"
@@ -12,11 +14,14 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+// structure de sauvegarde
 type Store struct {
 	db *gorm.DB
 }
 
+// initialisation de la DB
 func InitDB(db *gorm.DB) error {
+	//création des permissions
 	name := "ressources/scope_app"
 	data, err := utils.ReadJSON[models.ScopeData](name)
 	if err != nil {

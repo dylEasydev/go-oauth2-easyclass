@@ -1,7 +1,9 @@
 package models
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/dylEasydev/go-oauth2-easyclass/db/interfaces"
@@ -15,13 +17,14 @@ const (
 	CODE_VALIDATE = 1 * time.Hour
 )
 
-// structure du code de verification
+// structure du code de verificatioon
+// util pour valider le mail fournir par l'utilisateur
 type CodeVerif struct {
-	ID uuid.UUID `gorm:"primarykey;type:uuid;default:uuid_generate_v4()"`
+	ID uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	//code hashé en BD
-	Code string
+	Code string `gorm:"not null"`
 	//code en clair
-	rawCode string `gorm:"-"`
+	rawCode string
 
 	//temps d'expiration du code de verification
 	ExpiresAt time.Time
@@ -36,13 +39,20 @@ type CodeVerif struct {
 
 	VerifiableID   uuid.UUID `gorm:"not null;"`
 	VerifiableType string    `gorm:"not null;"`
-
-	Verifiable interfaces.UserInterface `gorm:"polymorphic:Verifiable;"`
 }
 
 // implementation de l'interface Tabler
 func (CodeVerif) TableName() string {
 	return "code_verifs"
+}
+
+// récupération de l'objet polymorphe scanner dans la base de leur héritage
+func (codeverif *CodeVerif) GetForeign(tx *gorm.DB) (interfaces.UserInterface, error) {
+	foreign := UserBase{}
+	if err := tx.Table(codeverif.VerifiableType).Select("id", "email", "username").Where(map[string]any{"id": codeverif.VerifiableID}).Take(&foreign).Error; err != nil {
+		return nil, err
+	}
+	return &foreign, nil
 }
 
 // validation du model avant la sauvegarde
@@ -55,34 +65,38 @@ func (codeverif *CodeVerif) BeforeSave(tx *gorm.DB) (err error) {
 	codeverif.Code = utils.GenerateHash(raw)
 
 	if codeverif.ExpiresAt.IsZero() {
-		codeverif.ExpiresAt = time.Now().Add(CODE_VALIDATE)
+		codeverif.ExpiresAt = time.Now().Add(CODE_VALIDATE).UTC()
 	}
 	return nil
 }
 
 // envoye du mail après créer
 func (codeVerif *CodeVerif) AfterSave(tx *gorm.DB) (err error) {
-	if err = tx.Model(codeVerif).Association("Verifiable").Find(&codeVerif.Verifiable); err != nil {
+
+	//récupération de l'objet polymorphes
+	verifiable, err := codeVerif.GetForeign(tx)
+	if err != nil {
 		return
 	}
-	email := codeVerif.Verifiable.GetMail()
-	code := codeVerif.rawCode
 
-	go func(email string, code string) {
-		mailErr := utils.SendVerificationCode(email, code)
-		if mailErr != nil {
-			fmt.Printf("problème lors de l'envoie de mail :%s\n", mailErr)
+	email := verifiable.GetMail()
+	code := codeVerif.rawCode
+	name := verifiable.GetName()
+
+	go func(email string, name string, code string) {
+		if mailErr := utils.SendVerificationCode(email, code, name); mailErr != nil {
+			log.Printf("warning: failed to send verification email to %s: %v", email, mailErr)
 		} else {
-			fmt.Println("mail bien envoyé")
+			log.Printf("info: verification email sent to %s", email)
 		}
-	}(email, code)
+	}(email, name, code)
 
 	return nil
 }
 
 // verification de l'expiration
 func (codeverif *CodeVerif) IsExpired() bool {
-	return time.Now().After(codeverif.ExpiresAt)
+	return time.Now().UTC().Before(codeverif.ExpiresAt)
 }
 
 // verifier s'il est déjà utiliser
@@ -92,7 +106,9 @@ func (codeVerif *CodeVerif) IsUsed() bool {
 
 // marké un code déjà utiliser
 func (codeverif *CodeVerif) MarkUsed(tx *gorm.DB) error {
-	now := time.Now()
-	codeverif.UseAt = &now
-	return tx.Session(&gorm.Session{SkipHooks: true}).Save(codeverif).Error
+	txSession := tx.Session(&gorm.Session{SkipHooks: true})
+	ctx := context.Background()
+	now := time.Now().UTC()
+	_, err := gorm.G[CodeVerif](txSession).Where(map[string]any{"id": codeverif.ID}).Updates(ctx, CodeVerif{UseAt: &now})
+	return err
 }

@@ -8,11 +8,11 @@ import (
 	"gorm.io/gorm"
 )
 
-// structure des images
+// structure de l'image de profil d'un utilisateur
 type Image struct {
-	ID           uuid.UUID `gorm:"primarykey;type:uuid;default:uuid_generate_v4()"`
-	PicturesName string    `gorm:"not null;unique;default:profil_default.png" validate:"required,name"`
-	UrlPictures  string    `gorm:"not null;unique" validate:"required,url"`
+	ID           uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
+	PicturesName string    `gorm:"not null;default:'profil_default.png'" validate:"required,name"`
+	UrlPictures  string    `gorm:"not null" validate:"required,url"`
 
 	PictureID   uuid.UUID `gorm:"not null;"`
 	PictureType string    `gorm:"not null;"`

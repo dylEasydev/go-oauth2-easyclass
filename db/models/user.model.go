@@ -7,6 +7,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const Cout_hash = 10
+
 // structure du model utilisateur permanent
 type User struct {
 	UserBase
@@ -23,15 +25,16 @@ func (User) TableName() string {
 	return "user"
 }
 
-func (user *User) BeforeSave(tx *gorm.DB) (err error) {
-	if err = validators.ValidateStruct(user); err != nil {
-		return
+// si modification du password hash du mots de passe avant la sauvegarde
+func (user *User) BeforeSave(tx *gorm.DB) error {
+	if err := validators.ValidateStruct(user); err != nil {
+		return nil
 	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 10)
+	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), Cout_hash)
 	if err != nil {
-		return
+		return nil
 	}
 
 	user.Password = string(hash)
-	return
+	return nil
 }

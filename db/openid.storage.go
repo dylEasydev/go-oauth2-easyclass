@@ -23,24 +23,23 @@ func (store *Store) CreateOpenIDConnectSession(ctx context.Context, authorizeCod
 
 // recupératon d'une session openid
 func (store *Store) GetOpenIDConnectSession(ctx context.Context, authorizeCode string, requester fosite.Requester) (fosite.Requester, error) {
-	var authorizeCodeModel models.AuthorizationCode
 
-	if err := store.db.WithContext(ctx).
-		Preload("Session.User").
-		Preload(clause.Associations).
-		Where(&models.AuthorizationCode{Code: authorizeCode}).
-		First(&authorizeCodeModel).Error; err != nil {
+	// recherche du code d'authorisation correspondant (authorizeCode)
+	authorizeCodeModel, err := gorm.G[models.AuthorizationCode](store.db).Preload("Session.User", nil).Preload(clause.Associations, nil).Where(&models.AuthorizationCode{Code: authorizeCode}).First(ctx)
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fosite.ErrNotFound
 		}
 		return nil, err
 	}
 
+	//unmarshal du formulaire
 	var form url.Values
 	if err := json.Unmarshal(authorizeCodeModel.Form, &form); err != nil {
 		return nil, fmt.Errorf("erreur de unmarshal du formulaire openid : %w", err)
 	}
 
+	//intialisation du fosite Request
 	rq := &fosite.Request{
 		ID:                authorizeCodeModel.ID.String(),
 		RequestedAt:       authorizeCodeModel.RequestedAt,
@@ -53,6 +52,7 @@ func (store *Store) GetOpenIDConnectSession(ctx context.Context, authorizeCode s
 		Session:           &authorizeCodeModel.Session,
 	}
 
+	//verification de la validité du code d'authorization
 	if authorizeCodeModel.Active != nil && !*authorizeCodeModel.Active {
 		return rq, fosite.ErrInvalidatedAuthorizeCode
 	}
@@ -62,9 +62,9 @@ func (store *Store) GetOpenIDConnectSession(ctx context.Context, authorizeCode s
 
 // suppression du code de la session openid
 func (store *Store) DeleteOpenIDConnectSession(ctx context.Context, authorizeCode string) error {
-	if err := store.db.WithContext(ctx).
-		Where(&models.AuthorizationCode{Code: authorizeCode}).
-		Delete(&models.AuthorizationCode{}).Error; err != nil {
+
+	//suppression du code d'authorization de la BD
+	if _, err := gorm.G[models.AuthorizationCode](store.db.Unscoped()).Where(&models.AuthorizationCode{Code: authorizeCode}).Delete(ctx); err != nil {
 		return fmt.Errorf("erreur de supression du code d'authorization: %w", err)
 	}
 

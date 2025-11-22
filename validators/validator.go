@@ -1,7 +1,6 @@
 package validators
 
 import (
-	"fmt"
 	"net/url"
 	"reflect"
 	"regexp"
@@ -19,14 +18,6 @@ var SliceValidation = map[string][]string{
 	"responsesValid":  {"code", "token", "code token", "implicit"},
 	"nameAppValid":    {"web app", "mobil app", "desktop app"},
 	"authMethodValid": {"client_secret_basic", "client_secret_post", "none", "private_key_jwt"},
-}
-
-type NotFoundError struct {
-	Msg string
-}
-
-func (fount NotFoundError) Error() string {
-	return fmt.Sprintf("NotFoundError:%s", fount.Msg)
 }
 
 func init() {

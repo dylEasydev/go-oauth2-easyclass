@@ -9,12 +9,16 @@ import (
 	"gorm.io/gorm"
 )
 
+// models PCKE pour OIDC
+// l'extension PCKE ( client avec code challenge )
 type PKCE struct {
-	ID        uuid.UUID `gorm:"primarykey;type:uuid;default:uuid_generate_v4()"`
+	ID        uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	Active    *bool     `gorm:"default:true"`
-	Signature string    `gorm:"unique"`
+	Signature string    `gorm:"uniqueIndex;not null"`
 
 	RequestedAt time.Time
+	ExpiresAt   time.Time `gorm:"index"`
+	Used        bool      `gorm:"default:false"`
 
 	RequestedScopes pq.StringArray `gorm:"type:text[]"`
 	GrantedScopes   pq.StringArray `gorm:"type:text[]"`

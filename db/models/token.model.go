@@ -11,7 +11,7 @@ import (
 
 // strcture du Jeton d'acess d'authentification oauth2
 type AccessToken struct {
-	ID     uuid.UUID `gorm:"primarykey;type:uuid;default:uuid_generate_v4()"`
+	ID     uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	Active *bool     `gorm:"default:true"`
 	//valeur unique du token ( bloc de carractère générer aléatoirement)
 	Signature string `gorm:"unique;not null"`

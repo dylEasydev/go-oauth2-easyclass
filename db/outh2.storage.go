@@ -17,30 +17,42 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-//implementation de l'inreface de CoreStorage
+//implementation de l'interface de CoreStorage
 
 // AuthorizationStorage
 func (store *Store) CreateAuthorizeCodeSession(ctx context.Context, code string, request fosite.Requester) (err error) {
+	parsedID, err := uuid.Parse(request.GetID())
+	if err != nil {
+		return fmt.Errorf("request id invalide: %w", err)
+	}
 	client := request.GetClient()
 
+	clientID, err := uuid.Parse(client.GetID())
+	if err != nil {
+		return fmt.Errorf("client id invalide: %w", err)
+	}
+
+	//marshalling du formulaire
 	form, err := json.Marshal(request.GetRequestForm())
 	if err != nil {
 		return fmt.Errorf("erreur de marshalling du authorize form : %w", err)
 	}
 
+	// conversion de la session fosite
 	session := request.GetSession().(*models.Session)
 
-	if err = store.db.WithContext(ctx).
-		Create(session).Error; err != nil {
+	//eneregistremment de la session en BD
+	if err = gorm.G[models.Session](store.db).Create(ctx, session); err != nil {
 		return fmt.Errorf("erreur de création de la sesion pour authorize code: %w", err)
 	}
 
+	//initialisation du code d'authorization
 	data := models.AuthorizationCode{
-		ID:                uuid.MustParse(request.GetID()),
+		ID:                parsedID,
 		Active:            utils.PtrBool(true),
 		Code:              code,
-		RequestedAt:       request.GetRequestedAt(),
-		ClientID:          uuid.MustParse(client.GetID()),
+		RequestedAt:       request.GetRequestedAt().UTC(),
+		ClientID:          clientID,
 		RequestedScopes:   pq.StringArray(request.GetRequestedScopes()),
 		GrantedScopes:     pq.StringArray(request.GetGrantedScopes()),
 		Form:              form,
@@ -49,8 +61,8 @@ func (store *Store) CreateAuthorizeCodeSession(ctx context.Context, code string,
 		GrantedAudience:   pq.StringArray(request.GetGrantedAudience()),
 	}
 
-	if err = store.db.WithContext(ctx).
-		Create(&data).Error; err != nil {
+	// enregistrement du code d'authorization en BD
+	if err = gorm.G[models.AuthorizationCode](store.db).Create(ctx, &data); err != nil {
 		return fmt.Errorf("erreur de création d'authorize code: %w", err)
 	}
 
@@ -59,25 +71,24 @@ func (store *Store) CreateAuthorizeCodeSession(ctx context.Context, code string,
 
 func (store *Store) GetAuthorizeCodeSession(ctx context.Context, code string, session fosite.Session) (request fosite.Requester, err error) {
 
-	var authorize_code models.AuthorizationCode
+	// recherche du code d'authorization
+	authorize_code, err := gorm.G[models.AuthorizationCode](store.db).Preload("Session.User", nil).Preload(clause.Associations, nil).Where(&models.AuthorizationCode{Code: code}).First(ctx)
 
-	if err := store.db.WithContext(ctx).
-		Preload("Session.User").
-		Preload(clause.Associations).
-		Where(&models.AuthorizationCode{Code: code}).
-		First(&authorize_code).Error; err != nil {
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fosite.ErrNotFound
 		}
 		return nil, err
 	}
 
+	//marshalling du formulaire
 	var form url.Values
 	err = json.Unmarshal(authorize_code.Form, &form)
 	if err != nil {
 		return nil, fmt.Errorf("erreur de unmasharlling du formulaire : %w", err)
 	}
 
+	//initialisation de fosite Request
 	rq := &fosite.Request{
 		ID:                authorize_code.ID.String(),
 		RequestedAt:       authorize_code.RequestedAt,
@@ -90,6 +101,7 @@ func (store *Store) GetAuthorizeCodeSession(ctx context.Context, code string, se
 		GrantedAudience:   fosite.Arguments(authorize_code.GrantedAudience),
 	}
 
+	//verification de la validité du code d'authorization
 	if authorize_code.Active != nil && !*authorize_code.Active {
 		return rq, fosite.ErrInvalidatedAuthorizeCode
 	}
@@ -98,20 +110,19 @@ func (store *Store) GetAuthorizeCodeSession(ctx context.Context, code string, se
 }
 
 func (store *Store) InvalidateAuthorizeCodeSession(ctx context.Context, code string) (err error) {
-	var authorize_code models.AuthorizationCode
 
-	if err := store.db.WithContext(ctx).
-		Where(&models.AuthorizationCode{Code: code}).
-		First(&authorize_code).Error; err != nil {
+	authorize_code, err := gorm.G[models.AuthorizationCode](store.db).Preload("Session.User", nil).Preload(clause.Associations, nil).Where(&models.AuthorizationCode{Code: code}).First(ctx)
+
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return fosite.ErrNotFound
 		}
 		return err
 	}
 
-	authorize_code.Active = utils.PtrBool(false)
-	if err := store.db.WithContext(ctx).
-		Save(authorize_code).Error; err != nil {
+	_, err = gorm.G[models.AuthorizationCode](store.db).Where(&models.AuthorizationCode{ID: authorize_code.ID}).Updates(ctx, models.AuthorizationCode{Active: utils.PtrBool(false)})
+
+	if err != nil {
 		return fmt.Errorf("erreur d'invalidation du token: %w", err)
 	}
 
@@ -120,7 +131,16 @@ func (store *Store) InvalidateAuthorizeCodeSession(ctx context.Context, code str
 
 // AccessTokenStorage
 func (store *Store) CreateAccessTokenSession(ctx context.Context, signature string, request fosite.Requester) (err error) {
+	parsedID, err := uuid.Parse(request.GetID())
+	if err != nil {
+		return fmt.Errorf("request id invalide: %w", err)
+	}
 	client := request.GetClient()
+
+	clientID, err := uuid.Parse(client.GetID())
+	if err != nil {
+		return fmt.Errorf("client id invalide: %w", err)
+	}
 
 	form, err := json.Marshal(request.GetRequestForm())
 	if err != nil {
@@ -128,17 +148,16 @@ func (store *Store) CreateAccessTokenSession(ctx context.Context, signature stri
 	}
 
 	session := request.GetSession().(*models.Session)
-	if err = store.db.WithContext(ctx).
-		Create(&session).Error; err != nil {
+	if err = gorm.G[models.Session](store.db).Create(ctx, session); err != nil {
 		return fmt.Errorf("erreur de création de la sesion pour access_token: %w", err)
 	}
 
 	data := models.AccessToken{
-		ID:                uuid.MustParse(request.GetID()),
+		ID:                parsedID,
 		Active:            utils.PtrBool(true),
 		Signature:         signature,
-		RequestedAt:       request.GetRequestedAt(),
-		ClientID:          uuid.MustParse(client.GetID()),
+		RequestedAt:       request.GetRequestedAt().UTC(),
+		ClientID:          clientID,
 		RequestedScopes:   pq.StringArray(request.GetRequestedScopes()),
 		GrantedScopes:     pq.StringArray(request.GetGrantedScopes()),
 		Form:              form,
@@ -147,8 +166,7 @@ func (store *Store) CreateAccessTokenSession(ctx context.Context, signature stri
 		GrantedAudience:   pq.StringArray(request.GetGrantedAudience()),
 	}
 
-	if err = store.db.WithContext(ctx).
-		Create(&data).Error; err != nil {
+	if err = gorm.G[models.AccessToken](store.db).Create(ctx, &data); err != nil {
 		return fmt.Errorf("erreur de création d'access_token: %w", err)
 	}
 	return nil
@@ -156,13 +174,9 @@ func (store *Store) CreateAccessTokenSession(ctx context.Context, signature stri
 
 func (store *Store) GetAccessTokenSession(ctx context.Context, signature string, session fosite.Session) (request fosite.Requester, err error) {
 
-	var access_token models.AccessToken
+	access_token, err := gorm.G[models.AccessToken](store.db).Preload("Session.User", nil).Preload(clause.Associations, nil).Where(&models.AccessToken{Signature: signature}).First(ctx)
 
-	if err := store.db.WithContext(ctx).
-		Preload("Session.User").
-		Preload(clause.Associations).
-		Where(&models.AccessToken{Signature: signature}).
-		First(&access_token).Error; err != nil {
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fosite.ErrNotFound
 		}
@@ -191,9 +205,7 @@ func (store *Store) GetAccessTokenSession(ctx context.Context, signature string,
 }
 
 func (store *Store) DeleteAccessTokenSession(ctx context.Context, signature string) (err error) {
-	if err := store.db.WithContext(ctx).
-		Where(&models.AccessToken{Signature: signature}).
-		Delete(&models.AccessToken{}).Error; err != nil {
+	if _, err := gorm.G[models.AccessToken](store.db.Unscoped()).Where(&models.AccessToken{Signature: signature}).Delete(ctx); err != nil {
 		return fmt.Errorf("erreur de supression de l'accessToken: %w", err)
 	}
 
@@ -202,7 +214,16 @@ func (store *Store) DeleteAccessTokenSession(ctx context.Context, signature stri
 
 // RefreshTokenStorage
 func (store *Store) CreateRefreshTokenSession(ctx context.Context, signature string, request fosite.Requester) (err error) {
+	parsedID, err := uuid.Parse(request.GetID())
+	if err != nil {
+		return fmt.Errorf("request id invalide: %w", err)
+	}
 	client := request.GetClient()
+
+	clientID, err := uuid.Parse(client.GetID())
+	if err != nil {
+		return fmt.Errorf("client id invalide: %w", err)
+	}
 
 	form, err := json.Marshal(request.GetRequestForm())
 	if err != nil {
@@ -210,17 +231,16 @@ func (store *Store) CreateRefreshTokenSession(ctx context.Context, signature str
 	}
 
 	session := request.GetSession().(*models.Session)
-	if err = store.db.WithContext(ctx).
-		Create(&session).Error; err != nil {
+	if err = gorm.G[models.Session](store.db).Create(ctx, session); err != nil {
 		return fmt.Errorf("erreur de création de la session: %w", err)
 	}
 
 	data := models.RefreshToken{
-		ID:                uuid.MustParse(request.GetID()),
+		ID:                parsedID,
 		Active:            utils.PtrBool(true),
 		Signature:         signature,
-		RequestedAt:       request.GetRequestedAt(),
-		ClientID:          uuid.MustParse(client.GetID()),
+		RequestedAt:       request.GetRequestedAt().UTC(),
+		ClientID:          clientID,
 		RequestedScopes:   pq.StringArray(request.GetRequestedScopes()),
 		GrantedScopes:     pq.StringArray(request.GetGrantedScopes()),
 		Form:              form,
@@ -229,8 +249,7 @@ func (store *Store) CreateRefreshTokenSession(ctx context.Context, signature str
 		GrantedAudience:   pq.StringArray(request.GetGrantedAudience()),
 	}
 
-	if err = store.db.WithContext(ctx).
-		Create(&data).Error; err != nil {
+	if err = gorm.G[models.RefreshToken](store.db).Create(ctx, &data); err != nil {
 		return fmt.Errorf("erreur de cration du refresh token : %w", err)
 	}
 
@@ -238,13 +257,9 @@ func (store *Store) CreateRefreshTokenSession(ctx context.Context, signature str
 }
 
 func (store *Store) GetRefreshTokenSession(ctx context.Context, signature string, session fosite.Session) (request fosite.Requester, err error) {
-	var result models.RefreshToken
 
-	if err := store.db.WithContext(ctx).
-		Preload("Session.User").
-		Preload(clause.Associations).
-		Where(&models.RefreshToken{Signature: signature}).
-		First(&result).Error; err != nil {
+	result, err := gorm.G[models.RefreshToken](store.db).Preload("Session.User", nil).Preload(clause.Associations, nil).Where(&models.RefreshToken{Signature: signature}).First(ctx)
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fosite.ErrNotFound
 		}
@@ -277,9 +292,7 @@ func (store *Store) GetRefreshTokenSession(ctx context.Context, signature string
 }
 
 func (store *Store) DeleteRefreshTokenSession(ctx context.Context, signature string) (err error) {
-	if err := store.db.WithContext(ctx).
-		Where(&models.RefreshToken{Signature: signature}).
-		Delete(&models.RefreshToken{}).Error; err != nil {
+	if _, err := gorm.G[models.RefreshToken](store.db.Unscoped()).Where(&models.RefreshToken{Signature: signature}).Delete(ctx); err != nil {
 		return fmt.Errorf("erreur de refresh token : %w", err)
 	}
 
@@ -287,8 +300,9 @@ func (store *Store) DeleteRefreshTokenSession(ctx context.Context, signature str
 }
 
 func (store *Store) Authenticate(ctx context.Context, name string, secret string) error {
-	var user models.User
-	if err := store.db.WithContext(ctx).Where("username = ?", name).First(&user).Error; err != nil {
+
+	user, err := gorm.G[models.User](store.db).Where("username = ?", name).First(ctx)
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return fosite.ErrNotFound.WithDebug("Invalid credentials")
 		}
@@ -301,4 +315,17 @@ func (store *Store) Authenticate(ctx context.Context, name string, secret string
 
 	return nil
 
+}
+
+func (store *Store) GetUser(ctx context.Context, username string) (*models.User, error) {
+	results, err := gorm.G[models.User](store.db).Preload("Roles.Scopes", nil).Preload(clause.Associations, nil).Where("username = ?", username).First(ctx)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fosite.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return &results, err
 }

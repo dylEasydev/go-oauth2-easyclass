@@ -1,5 +1,7 @@
 package models
 
+// packages models
+
 import (
 	"time"
 
@@ -9,9 +11,9 @@ import (
 	"gorm.io/gorm"
 )
 
-// structure du code d'authorization
+// db models d'AuthorizationCode pour OIDC
 type AuthorizationCode struct {
-	ID     uuid.UUID `gorm:"primarykey;type:uuid;default:uuid_generate_v4()"`
+	ID     uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	Active *bool     `gorm:"default:true"`
 
 	//code d'authorization unique

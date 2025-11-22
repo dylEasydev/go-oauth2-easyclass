@@ -15,14 +15,13 @@ import (
 
 // structure de session basée sur fosite
 type Session struct {
-	ID uuid.UUID `gorm:"primarykey;type:uuid;default:uuid_generate_v4()"`
+	ID uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 
 	Username  string
 	Subject   string
 	ExpiresAt datatypes.JSON `gorm:"type:jsonb"`
 
 	//OIDC specification
-	Nonce    string
 	AuthTime time.Time
 
 	AMR datatypes.JSON `gorm:"type:jsonb;default:'[\"pwd\"]'"`
@@ -78,7 +77,6 @@ func (s *Session) GetExpiresAt(key fosite.TokenType) time.Time {
 	return expiresAt[key]
 }
 
-// GetUsername returns the username, if set. This is optional and only used during token introspection.
 func (s *Session) GetUsername() string {
 	if s == nil {
 		return ""
@@ -117,6 +115,22 @@ func (s *Session) Clone() fosite.Session {
 	return deepcopy.Copy(s).(fosite.Session)
 }
 
+func (s *Session) GetJWTClaims() jwt.JWTClaimsContainer {
+	if s == nil {
+		return &jwt.JWTClaims{}
+	}
+
+	claims := jwt.JWTClaims{}
+
+	//subject
+	claims.Subject = s.Subject
+
+	//extra
+	claims.Extra = s.GetExtraClaims()
+
+	return &claims
+}
+
 func (s *Session) IDTokenClaims() *jwt.IDTokenClaims {
 	if s == nil {
 		return &jwt.IDTokenClaims{}
@@ -125,31 +139,8 @@ func (s *Session) IDTokenClaims() *jwt.IDTokenClaims {
 	// Création de la structure claims
 	claims := &jwt.IDTokenClaims{}
 
-	// Issuer : on cherche dans s.Extra["iss"] sinon vide (à configurer)
-	if extra := s.GetExtraClaims(); extra != nil {
-		if iss, ok := extra["iss"].(string); ok && iss != "" {
-			claims.Issuer = iss
-		}
-	}
-
 	// Subject (sub)
 	claims.Subject = s.Subject
-
-	// Audience (aud) : on préfère l'audience du client si présente,
-	// sinon on met l'ID du client comme audience.
-	if s.ClientID != uuid.Nil {
-		aud := s.Client.GetAudience()
-		if len(aud) > 0 {
-			for _, a := range aud {
-				claims.Audience = append(claims.Audience, a)
-			}
-		} else {
-			claims.Audience = []string{s.ClientID.String()}
-		}
-	}
-
-	// Nonce
-	claims.Nonce = s.Nonce
 
 	// auth_time
 	claims.AuthTime = s.AuthTime
@@ -171,9 +162,6 @@ func (s *Session) IDTokenClaims() *jwt.IDTokenClaims {
 
 	// iat : temps d'émission = maintenant (ou si présent dans extra, on l'utilise)
 	now := time.Now().UTC()
-	if claims.IssuedAt.IsZero() {
-		claims.IssuedAt = now
-	}
 
 	// requested at (rat) : si fourni dans extra on l'utilise, sinon now
 	if rat, ok := claims.Extra["rat"].(time.Time); ok {
@@ -187,15 +175,6 @@ func (s *Session) IDTokenClaims() *jwt.IDTokenClaims {
 		}
 	} else {
 		claims.RequestedAt = now
-	}
-
-	// exp : on récupère l'expiration depuis la session (si elle existe)
-	if exp := s.GetExpiresAt(fosite.IDToken); !exp.IsZero() {
-		claims.ExpiresAt = exp
-	} else if exp := s.GetExpiresAt(fosite.AccessToken); !exp.IsZero() {
-		claims.ExpiresAt = exp
-	} else if exp := s.GetExpiresAt(fosite.AuthorizeCode); !exp.IsZero() {
-		claims.ExpiresAt = exp
 	}
 
 	// at_hash / c_hash : si access_token ou code sont fournis dans Extra,
@@ -282,4 +261,8 @@ func (s *Session) IDTokenHeaders() *jwt.Headers {
 
 	headers.Extra = extraMap
 	return headers
+}
+
+func (s *Session) GetJWTHeader() *jwt.Headers {
+	return s.IDTokenHeaders()
 }

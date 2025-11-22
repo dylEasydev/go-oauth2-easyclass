@@ -17,25 +17,34 @@ import (
 )
 
 func (store *Store) CreatePKCERequestSession(ctx context.Context, signature string, requester fosite.Requester) error {
+	parsedID, err := uuid.Parse(requester.GetID())
+	if err != nil {
+		return fmt.Errorf("request id invalide: %w", err)
+	}
 	client := requester.GetClient()
 
-	form, err := json.Marshal(requester.GetRequestForm())
+	clientID, err := uuid.Parse(client.GetID())
+	if err != nil {
+		return fmt.Errorf("client id invalide: %w", err)
+	}
+
+	formValues := requester.GetRequestForm()
+	form, err := json.Marshal(formValues)
 	if err != nil {
 		return fmt.Errorf("errreur de marchalling du pcke form %w", err)
 	}
 
 	session := requester.GetSession().(*models.Session)
-	if err = store.db.WithContext(ctx).
-		Create(&session).Error; err != nil {
+	if err = gorm.G[models.Session](store.db).Create(ctx, session); err != nil {
 		return fmt.Errorf("erreur de cration de la session: %w", err)
 	}
 
 	data := models.PKCE{
-		ID:                uuid.MustParse(requester.GetID()),
+		ID:                parsedID,
 		Active:            utils.PtrBool(true),
 		Signature:         signature,
-		RequestedAt:       requester.GetRequestedAt(),
-		ClientID:          uuid.MustParse(client.GetID()),
+		RequestedAt:       requester.GetRequestedAt().UTC(),
+		ClientID:          clientID,
 		RequestedScopes:   pq.StringArray(requester.GetRequestedScopes()),
 		GrantedScopes:     pq.StringArray(requester.GetGrantedScopes()),
 		Form:              form,
@@ -44,8 +53,7 @@ func (store *Store) CreatePKCERequestSession(ctx context.Context, signature stri
 		GrantedAudience:   pq.StringArray(requester.GetGrantedAudience()),
 	}
 
-	if err = store.db.WithContext(ctx).
-		Create(&data).Error; err != nil {
+	if err = gorm.G[models.PKCE](store.db).Create(ctx, &data); err != nil {
 		return fmt.Errorf("erreur de creation du PCKE: %w", err)
 	}
 
@@ -55,11 +63,8 @@ func (store *Store) CreatePKCERequestSession(ctx context.Context, signature stri
 func (store *Store) GetPKCERequestSession(ctx context.Context, signature string, session fosite.Session) (fosite.Requester, error) {
 	var result models.PKCE
 
-	if err := store.db.WithContext(ctx).
-		Preload("Session.User").
-		Preload(clause.Associations).
-		Where(&models.PKCE{Signature: signature}).
-		First(&result).Error; err != nil {
+	result, err := gorm.G[models.PKCE](store.db).Preload("Session.User", nil).Preload(clause.Associations, nil).Where(&models.PKCE{Signature: signature}).First(ctx)
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fosite.ErrNotFound
 		}
@@ -67,7 +72,7 @@ func (store *Store) GetPKCERequestSession(ctx context.Context, signature string,
 	}
 
 	var form url.Values
-	err := json.Unmarshal(result.Form, &form)
+	err = json.Unmarshal(result.Form, &form)
 	if err != nil {
 		return nil, fmt.Errorf("erreur unmarshal du formulaire PCKE: %w", err)
 	}
@@ -88,9 +93,7 @@ func (store *Store) GetPKCERequestSession(ctx context.Context, signature string,
 }
 
 func (store *Store) DeletePKCERequestSession(ctx context.Context, signature string) error {
-	if err := store.db.WithContext(ctx).
-		Where(&models.PKCE{Signature: signature}).
-		Delete(&models.PKCE{}).Error; err != nil {
+	if _, err := gorm.G[models.PKCE](store.db.Unscoped()).Where(&models.PKCE{Signature: signature}).Delete(ctx); err != nil {
 		return fmt.Errorf("erreur de suppression de PCKE request: %w", err)
 	}
 
