@@ -249,7 +249,7 @@ func (c *Client) GetJSONWebKeys() *jose.JSONWebKeySet {
 
 // URI vers le end-point qui donne les clé JWK du client
 func (c *Client) GetJSONWebKeysURI() string {
-	return "/client/jwks/" + c.ID.String()
+	return "/keys/client/jwks/" + c.ID.String()
 }
 
 // Algorithme de signature pour Request Objects

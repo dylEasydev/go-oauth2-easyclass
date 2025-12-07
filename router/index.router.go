@@ -6,12 +6,23 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Router struct {
-	Server *gin.Engine
-	Store  *db.Store
+type router struct {
+	Server       *gin.Engine
+	Store        *db.Store
+	StoreRequest *controller.StoreRequest
 }
 
-func (r *Router) IndexRouter() {
+func NewRouter(server *gin.Engine, store *db.Store) *router {
+	return &router{
+		Server: server,
+		Store:  store,
+		StoreRequest: &controller.StoreRequest{
+			Store: store,
+		},
+	}
+}
+
+func (r *router) IndexRouter() {
 	indexGroup := r.Server.Group("/")
 	{
 		indexGroup.GET("/", controller.IndexHanler)

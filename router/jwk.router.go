@@ -4,10 +4,11 @@ import (
 	"github.com/dylEasydev/go-oauth2-easyclass/controller"
 )
 
-func (r *Router) JWKRouter() {
-	jwkGroup := r.Server.Group("/key")
+func (r *router) JWKRouter() {
+	jwkGroup := r.Server.Group("/keys")
 
 	{
-		jwkGroup.GET("/jws.json", controller.JWKHandler)
+		jwkGroup.GET("/clients/jwks/:id", r.StoreRequest.ClientJWKHanler)
+		jwkGroup.GET("/jwks.json", controller.JWKHandler)
 	}
 }

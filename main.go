@@ -8,10 +8,12 @@ import (
 	"github.com/dylEasydev/go-oauth2-easyclass/db"
 	"github.com/dylEasydev/go-oauth2-easyclass/router"
 	"github.com/gin-gonic/gin"
-	_ "github.com/joho/godotenv"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+
+	_ = godotenv.Load()
 
 	server := gin.Default()
 	store := db.New()
@@ -22,7 +24,7 @@ func main() {
 		log.Fatal("Erreur du démarrage du serveur", err)
 	}
 
-	router := router.Router{Server: server, Store: store}
+	router := router.NewRouter(server, store)
 	router.IndexRouter()
 	router.OIDCRouter()
 	router.JWKRouter()

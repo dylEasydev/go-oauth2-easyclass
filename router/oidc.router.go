@@ -6,7 +6,7 @@ import (
 	"github.com/dylEasydev/go-oauth2-easyclass/utils"
 )
 
-func (r *Router) OIDCRouter() {
+func (r *router) OIDCRouter() {
 	privateKey, err := utils.LoadPrivateKey("private.key")
 	if err != nil {
 		panic("impossible de lire les clé de signature")
