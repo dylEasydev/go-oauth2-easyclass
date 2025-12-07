@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -31,6 +32,17 @@ func init() {
 	Validate.RegisterValidation("responseallowed", ResponseValidator(SliceValidation["responsesValid"]))
 	Validate.RegisterValidation("authmethodallowed", ResponseValidator(SliceValidation["authMethodValid"]))
 	Validate.RegisterValidation("appallowed", ResponseValidator(SliceValidation["nameAppValid"]))
+
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		v.RegisterValidation("password", PasswordValidator)
+		v.RegisterValidation("name", NameValidator)
+		v.RegisterValidation("rowallowed", InSliceValidator(SliceValidation["roles"]))
+		v.RegisterValidation("grantallowed", InSliceValidator(SliceValidation["grantValid"]))
+		v.RegisterValidation("urlallowed", URLArrayValidator)
+		v.RegisterValidation("responseallowed", ResponseValidator(SliceValidation["responsesValid"]))
+		v.RegisterValidation("authmethodallowed", ResponseValidator(SliceValidation["authMethodValid"]))
+		v.RegisterValidation("appallowed", ResponseValidator(SliceValidation["nameAppValid"]))
+	}
 }
 
 func PasswordValidator(fl validator.FieldLevel) bool {

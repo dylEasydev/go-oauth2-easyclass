@@ -30,7 +30,7 @@ func InitProvider(store *db.Store, key *rsa.PrivateKey) fosite.OAuth2Provider {
 		EnforcePKCE:                         true,
 		GrantTypeJWTBearerCanSkipClientAuth: false,
 		EnablePKCEPlainChallengeMethod:      true,
-		IDTokenIssuer:                       "esasy-class",
+		IDTokenIssuer:                       "easy-class",
 		PushedAuthorizeContextLifespan:      5 * time.Minute,
 		SendDebugMessagesToClients:          true,
 	}
@@ -47,7 +47,6 @@ func InitProvider(store *db.Store, key *rsa.PrivateKey) fosite.OAuth2Provider {
 		compose.OAuth2AuthorizeImplicitFactory,
 		compose.OAuth2ClientCredentialsGrantFactory,
 		compose.OAuth2RefreshTokenGrantFactory,
-		compose.OAuth2TokenIntrospectionFactory,
 		compose.RFC7523AssertionGrantFactory,
 
 		compose.OpenIDConnectExplicitFactory,

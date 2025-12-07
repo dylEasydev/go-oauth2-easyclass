@@ -5,7 +5,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/dylEasydev/go-oauth2-easyclass/controller"
+	"github.com/dylEasydev/go-oauth2-easyclass/db"
+	"github.com/dylEasydev/go-oauth2-easyclass/router"
 	"github.com/gin-gonic/gin"
 	_ "github.com/joho/godotenv"
 )
@@ -13,14 +14,18 @@ import (
 func main() {
 
 	server := gin.Default()
+	store := db.New()
 
 	port := os.Getenv("PORT")
 
-	if err := server.Run(":" + port); err != nil {
+	if err := server.RunTLS(":"+port, "./key/server.pem", "./key/server.key"); err != nil {
 		log.Fatal("Erreur du démarrage du serveur", err)
 	}
 
-	server.GET("/", controller.IndexHanler)
+	router := router.Router{Server: server, Store: store}
+	router.IndexRouter()
+	router.OIDCRouter()
+	router.JWKRouter()
 
 	fmt.Printf("Serveur démarre à l'adresse http://localhost:%s", port)
 }

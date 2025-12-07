@@ -1,7 +1,9 @@
 package models
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/dylEasydev/go-oauth2-easyclass/utils"
@@ -42,6 +44,42 @@ type Session struct {
 
 func (Session) TableName() string {
 	return "sessions"
+}
+
+func NewSession(
+	ctx context.Context,
+	clientID string,
+	userID string,
+	username string,
+	subject string,
+	extra map[string]any,
+) (*Session, error) {
+	idClient, err := uuid.Parse(clientID)
+	if err != nil {
+		return nil, err
+	}
+	idUser, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, err
+	}
+	session := &Session{
+		UserID:   &idUser,
+		ClientID: idClient,
+		Username: username,
+		Subject:  subject,
+		AuthTime: time.Now().UTC(),
+	}
+
+	if extra != nil {
+		sess_extra, err := json.Marshal(extra)
+		if err != nil {
+			return nil, fmt.Errorf("error marshalling session extra: %w", err)
+		}
+
+		session.Extra = sess_extra
+	}
+
+	return session, nil
 }
 
 func (s *Session) SetSubject(subject string) {
