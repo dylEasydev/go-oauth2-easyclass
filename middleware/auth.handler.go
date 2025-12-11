@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"crypto/rsa"
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -42,8 +43,8 @@ func AuthMiddleware(publicKey *rsa.PublicKey) gin.HandlerFunc {
 			ctx.Abort()
 			return
 		}
-		var claims fosite_jwt.JWTClaims
-		err = jwt.ParseClaims([]byte(tokenString), verifier, &claims)
+		var claims = fosite_jwt.JWTClaims{}
+		token, err := jwt.Parse([]byte(tokenString), verifier)
 
 		if err != nil {
 			ctx.JSON(http.StatusUnauthorized, gin.H{
@@ -53,5 +54,11 @@ func AuthMiddleware(publicKey *rsa.PublicKey) gin.HandlerFunc {
 			ctx.Abort()
 			return
 		}
+		err = json.Unmarshal(token.Claims(), &claims)
+		if err != nil {
+
+		}
+		ctx.Set("claims", claims)
+		ctx.Next()
 	}
 }

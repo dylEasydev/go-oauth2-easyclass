@@ -27,3 +27,7 @@ func (user *UserBase) GetMail() string {
 func (user *UserBase) GetName() string {
 	return user.UserName
 }
+
+func (user *UserBase) GetId() uuid.UUID {
+	return user.ID
+}

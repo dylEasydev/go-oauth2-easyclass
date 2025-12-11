@@ -62,3 +62,7 @@ func (teacher *TeacherTemp) SavePerm(tx *gorm.DB) error {
 	}
 	return nil
 }
+
+func (teacher *TeacherTemp) DestroyUser(tx *gorm.DB) error {
+	return query.QueryDeleteById[TeacherTemp](tx, teacher.ID)
+}

@@ -98,11 +98,18 @@ func (student *StudentTemp) SavePerm(tx *gorm.DB) (err error) {
 			VerifiableID:   user.ID,
 			VerifiableType: user.TableName(),
 		}
-
+		err := code.BeforeSave(tx)
+		if err != nil {
+			return fmt.Errorf("erreur lors de la création du code de vérification: %w", err)
+		}
 		if err := query.QueryCreate(txhooks, &code); err != nil {
 			return fmt.Errorf("erreur lors de la création du code de vérification: %w", err)
 		}
 
 		return nil
 	})
+}
+
+func (student *StudentTemp) DestroyUser(tx *gorm.DB) error {
+	return query.QueryDeleteById[StudentTemp](tx, student.ID)
 }
