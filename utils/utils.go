@@ -31,21 +31,30 @@ func IntersectScopes(clientScopes, userScopes []string) []string {
 
 func LoadPrivateKey(fileName string) (*rsa.PrivateKey, error) {
 	baseDir, _ := os.Getwd()
-	fullPath := path.Join(baseDir, "key/", fileName+".json")
+	fullPath := path.Join(baseDir, "key/", fileName+".key")
 	data, err := os.ReadFile(fullPath)
 	if err != nil {
 		return nil, fmt.Errorf("erreur ouverture fichier: %w", err)
 	}
 	block, _ := pem.Decode(data)
-	if block == nil || block.Type != "RSA PRIVATE KEY" {
+	if block == nil || block.Type != "PRIVATE KEY" {
 		return nil, fmt.Errorf("échec du décodage de la clé privé")
 	}
-	return x509.ParsePKCS1PrivateKey(block.Bytes)
+	priv, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	switch priv := priv.(type) {
+	case *rsa.PrivateKey:
+		return priv, nil
+	default:
+		return nil, fmt.Errorf("la clé publicn'est pas de type RSA ")
+	}
 }
 
 func LoadPublicKey(fileName string) (*rsa.PublicKey, error) {
 	baseDir, _ := os.Getwd()
-	fullPath := path.Join(baseDir, "key/", fileName+".json")
+	fullPath := path.Join(baseDir, "key/", fileName+".key")
 	data, err := os.ReadFile(fullPath)
 	if err != nil {
 		return nil, fmt.Errorf("erreur ouverture fichier: %w", err)

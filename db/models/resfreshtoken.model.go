@@ -17,6 +17,9 @@ type RefreshToken struct {
 	//valeur du token de rafraichissement
 	Signature string `gorm:"unique;not null"`
 
+	//valeur du token d'accès associé
+	AccessSignature string `gorm:"unique;not null"`
+
 	RequestedAt time.Time `gorm:"not null"`
 
 	//permission et grant_types demandés dans la requêtes

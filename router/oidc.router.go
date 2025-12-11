@@ -1,14 +1,17 @@
 package router
 
 import (
+	"log"
+
 	"github.com/dylEasydev/go-oauth2-easyclass/controller"
 	"github.com/dylEasydev/go-oauth2-easyclass/provider"
 	"github.com/dylEasydev/go-oauth2-easyclass/utils"
 )
 
 func (r *router) OIDCRouter() {
-	privateKey, err := utils.LoadPrivateKey("private.key")
+	privateKey, err := utils.LoadPrivateKey("private")
 	if err != nil {
+		log.Print(err)
 		panic("impossible de lire les clé de signature")
 	}
 	provider := provider.InitProvider(r.Store, privateKey)

@@ -16,7 +16,6 @@ func InitProvider(store *db.Store, key *rsa.PrivateKey) fosite.OAuth2Provider {
 	keyGetter := func(context.Context) (interface{}, error) {
 		return key, nil
 	}
-
 	secret := []byte(os.Getenv("SECRET"))
 
 	conf := &fosite.Config{

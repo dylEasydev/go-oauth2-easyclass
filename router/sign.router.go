@@ -7,7 +7,7 @@ import (
 
 func (r *router) SignRouter() {
 	signGroup := r.Server.Group("/sign")
-	publicKey, err := utils.LoadPublicKey("public.key")
+	publicKey, err := utils.LoadPublicKey("public")
 	if err != nil {
 		panic("impossible de lire la clé public")
 	}

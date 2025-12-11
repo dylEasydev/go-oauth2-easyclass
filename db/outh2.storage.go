@@ -213,7 +213,7 @@ func (store *Store) DeleteAccessTokenSession(ctx context.Context, signature stri
 }
 
 // RefreshTokenStorage
-func (store *Store) CreateRefreshTokenSession(ctx context.Context, signature string, request fosite.Requester) (err error) {
+func (store *Store) CreateRefreshTokenSession(ctx context.Context, signature string, accessSignature string, request fosite.Requester) (err error) {
 	parsedID, err := uuid.Parse(request.GetID())
 	if err != nil {
 		return fmt.Errorf("request id invalide: %w", err)
@@ -239,6 +239,7 @@ func (store *Store) CreateRefreshTokenSession(ctx context.Context, signature str
 		ID:                parsedID,
 		Active:            utils.PtrBool(true),
 		Signature:         signature,
+		AccessSignature:   accessSignature,
 		RequestedAt:       request.GetRequestedAt().UTC(),
 		ClientID:          clientID,
 		RequestedScopes:   pq.StringArray(request.GetRequestedScopes()),
@@ -294,6 +295,23 @@ func (store *Store) GetRefreshTokenSession(ctx context.Context, signature string
 func (store *Store) DeleteRefreshTokenSession(ctx context.Context, signature string) (err error) {
 	if _, err := gorm.G[models.RefreshToken](store.db.Unscoped()).Where(&models.RefreshToken{Signature: signature}).Delete(ctx); err != nil {
 		return fmt.Errorf("erreur de refresh token : %w", err)
+	}
+
+	return nil
+}
+
+func (store *Store) RotateRefreshToken(ctx context.Context, requestID string, refreshTokenSignature string) (err error) {
+	refreshToken, err := gorm.G[models.RefreshToken](store.db).Where(&models.RefreshToken{Signature: refreshTokenSignature}).First(ctx)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fosite.ErrNotFound
+		}
+		return fmt.Errorf("erreur de recherche du refresh token: %w", err)
+	}
+
+	_, err = gorm.G[models.RefreshToken](store.db).Where(&models.RefreshToken{ID: refreshToken.ID}).Updates(ctx, models.RefreshToken{Active: utils.PtrBool(false)})
+	if err != nil {
+		return fmt.Errorf("erreur d'invalidation du refresh token: %w", err)
 	}
 
 	return nil

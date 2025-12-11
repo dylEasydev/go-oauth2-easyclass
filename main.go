@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -21,9 +20,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 
-	if err := server.RunTLS(":"+port, "./key/server.pem", "./key/server.key"); err != nil {
-		log.Fatal("Erreur du démarrage du serveur", err)
-	}
+	log.Printf("Serveur démarre à l'adresse https://localhost:%s", port)
 
 	server.Use(middleware.ErrorHandler())
 	router := router.NewRouter(server, store)
@@ -33,5 +30,8 @@ func main() {
 	router.SignRouter()
 	router.CodeRouter()
 
-	fmt.Printf("Serveur démarre à l'adresse https://localhost:%s", port)
+	if err := server.RunTLS(":"+port, "./key/server.pem", "./key/server.key"); err != nil {
+		log.Fatal("Erreur du démarrage du serveur", err)
+	}
+
 }

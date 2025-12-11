@@ -36,10 +36,10 @@ type Client struct {
 	Audience pq.StringArray `gorm:"type:text[]"`
 
 	//grant du client
-	Grants pq.StringArray `validate:"required,grantallowed"`
+	Grants pq.StringArray `gorm:"type:text[]" validate:"required,grantallowed"`
 
 	//types de la response
-	ResponseTypes pq.StringArray `validate:"required,responseallowed"`
+	ResponseTypes pq.StringArray `gorm:"type:text[]" validate:"required,responseallowed"`
 
 	//uri de ressources du client
 	RequestURIs pq.StringArray `gorm:"type:text[]"`

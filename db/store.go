@@ -58,6 +58,11 @@ func New() *Store {
 		log.Fatalf("erreur de connexion à la base de données: %v", err)
 	}
 
+	// Ensure uuid_generate_v4() exists (uuid-ossp extension) before running migrations
+	if err := db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`).Error; err != nil {
+		log.Fatalf("failed to create extension uuid-ossp: %v", err)
+	}
+
 	err = db.AutoMigrate(
 		models.User{},
 		models.CodeVerif{},
