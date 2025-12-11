@@ -1,7 +1,7 @@
 {
    "data": [
     {
-        "scopeName":"created:admin",
+        "scopeName":"admin.created",
         "scopeDescript":"permissions de créer un admin"
     },
     {

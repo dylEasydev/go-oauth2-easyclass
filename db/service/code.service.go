@@ -28,6 +28,17 @@ func (service *CodeService) FindCode(code string, id uuid.UUID) (*models.CodeVer
 	return &codeVerif, nil
 }
 
+func (service *CodeService) FindCodeTable(table string, id uuid.UUID) (*models.CodeVerif, error) {
+	codeVerif, err := gorm.G[models.CodeVerif](service.Db).Where(&models.CodeVerif{VerifiableType: table, VerifiableID: id}).First(*service.Ctx)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrNotCode
+		}
+		return nil, err
+	}
+	return &codeVerif, nil
+}
+
 func (service *CodeService) UpdateCodeVerif(user interfaces.UserInterface, code string) error {
 	beforeCode, err := service.FindCode(code, user.GetId())
 	if beforeCode == nil {
@@ -38,4 +49,12 @@ func (service *CodeService) UpdateCodeVerif(user interfaces.UserInterface, code 
 		return err
 	}
 	return nil
+}
+
+func (service *CodeService) GetForeignByName(tableName, name string) (interfaces.UserInterface, error) {
+	foreign := models.UserBase{}
+	if err := service.Db.Table(tableName).Select("id", "email", "username").Where(map[string]any{"username": name}).Take(&foreign).Error; err != nil {
+		return nil, err
+	}
+	return &foreign, nil
 }

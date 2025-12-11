@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/dylEasydev/go-oauth2-easyclass/db"
+	"github.com/dylEasydev/go-oauth2-easyclass/middleware"
 	"github.com/dylEasydev/go-oauth2-easyclass/router"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -24,10 +25,13 @@ func main() {
 		log.Fatal("Erreur du démarrage du serveur", err)
 	}
 
+	server.Use(middleware.ErrorHandler())
 	router := router.NewRouter(server, store)
 	router.IndexRouter()
 	router.OIDCRouter()
 	router.JWKRouter()
+	router.SignRouter()
+	router.CodeRouter()
 
-	fmt.Printf("Serveur démarre à l'adresse http://localhost:%s", port)
+	fmt.Printf("Serveur démarre à l'adresse https://localhost:%s", port)
 }

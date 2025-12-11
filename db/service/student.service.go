@@ -15,14 +15,14 @@ type StudentService struct {
 }
 
 func (service *StudentService) CreateUser(data *UserBody) (*models.StudentTemp, error) {
-	studentFind, err := FindUserByName[models.StudentTemp](*service.Ctx, service.Db, data.name, data.email)
+	studentFind, err := FindUserByName[models.StudentTemp](*service.Ctx, service.Db, data.Name, data.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			newStudent := models.StudentTemp{
 				UserBase: models.UserBase{
-					UserName: data.name,
-					Email:    data.email,
-					Password: data.password,
+					UserName: data.Name,
+					Email:    data.Email,
+					Password: data.Password,
 				},
 			}
 			if err := query.QueryCreate(service.Db, &newStudent); err != nil {
@@ -34,9 +34,9 @@ func (service *StudentService) CreateUser(data *UserBody) (*models.StudentTemp, 
 	}
 	studentUpdate := models.StudentTemp{
 		UserBase: models.UserBase{
-			UserName: data.name,
-			Email:    data.email,
-			Password: data.password,
+			UserName: data.Name,
+			Email:    data.Email,
+			Password: data.Password,
 		},
 	}
 	_, err = gorm.G[models.StudentTemp](service.Db).Where("id = ?", studentFind.ID).Updates(*service.Ctx, studentUpdate)

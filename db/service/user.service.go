@@ -17,9 +17,9 @@ type UserService struct {
 	Db  *gorm.DB
 }
 type UserBody struct {
-	name     string
-	email    string
-	password string
+	Name     string
+	Email    string
+	Password string
 }
 
 func (service *UserService) FindUserByName(name, email string) (*models.User, error) {
@@ -55,9 +55,9 @@ func (service *UserService) CreateUser(data *UserBody) (*models.User, error) {
 		//création de l'utilisateur
 		newUser = &models.User{
 			UserBase: models.UserBase{
-				UserName: data.name,
-				Email:    data.email,
-				Password: data.password,
+				UserName: data.Name,
+				Email:    data.Email,
+				Password: data.Password,
 			},
 			RoleID: role.ID,
 		}

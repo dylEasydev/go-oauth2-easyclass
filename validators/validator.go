@@ -15,6 +15,7 @@ var Validate *validator.Validate
 
 var SliceValidation = map[string][]string{
 	"roles":           {"admin", "teacher", "student"},
+	"tableName":       {"user", "teacher_temp", "student_temps"},
 	"grantValid":      {"code", "token", "code token"},
 	"responsesValid":  {"code", "token", "code token", "implicit"},
 	"nameAppValid":    {"web app", "mobil app", "desktop app"},
@@ -39,6 +40,7 @@ func init() {
 		v.RegisterValidation("rowallowed", InSliceValidator(SliceValidation["roles"]))
 		v.RegisterValidation("grantallowed", InSliceValidator(SliceValidation["grantValid"]))
 		v.RegisterValidation("urlallowed", URLArrayValidator)
+		v.RegisterValidation("tableName", InSliceValidator(SliceValidation["tableName"]))
 		v.RegisterValidation("responseallowed", ResponseValidator(SliceValidation["responsesValid"]))
 		v.RegisterValidation("authmethodallowed", ResponseValidator(SliceValidation["authMethodValid"]))
 		v.RegisterValidation("appallowed", ResponseValidator(SliceValidation["nameAppValid"]))

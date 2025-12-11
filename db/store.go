@@ -19,6 +19,10 @@ type Store struct {
 	db *gorm.DB
 }
 
+func (store *Store) GetDb() *gorm.DB {
+	return store.db
+}
+
 // initialisation de la DB
 func InitDB(db *gorm.DB) error {
 	//création des permissions

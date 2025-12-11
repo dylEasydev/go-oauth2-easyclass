@@ -49,7 +49,7 @@ func (CodeVerif) TableName() string {
 // récupération de l'objet polymorphe scanner dans la base de leur héritage
 func (codeverif *CodeVerif) GetForeign(tx *gorm.DB) (interfaces.UserInterface, error) {
 	foreign := UserBase{}
-	if err := tx.Table(codeverif.VerifiableType).Select("id", "email", "username").Where(map[string]any{"id": codeverif.VerifiableID}).Take(&foreign).Error; err != nil {
+	if err := tx.Table(codeverif.VerifiableType).Select("id", "email", "username", "password").Where(map[string]any{"id": codeverif.VerifiableID}).Take(&foreign).Error; err != nil {
 		return nil, err
 	}
 	return &foreign, nil

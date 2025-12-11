@@ -15,7 +15,7 @@ type Auth struct {
 }
 
 type Authorize struct {
-	UserName string   `form:"username" json:"username" binding:"required,name"`
+	UserName string   `form:"name" json:"name" binding:"required,name"`
 	Password string   `form:"password" json:"password" binding:"required,min=8,password"`
 	Scopes   []string `form:"scopes" json:"scopes"`
 }
