@@ -7,10 +7,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"os"
 )
 
-var sercret = ""
+var sercret = os.Getenv("KEY_HASH")
 
+// génération aléatoire d'un code à 6 chiffre
 func GenerateVerificationCode() (string, error) {
 	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
 	if err != nil {
@@ -18,12 +20,15 @@ func GenerateVerificationCode() (string, error) {
 	}
 	return fmt.Sprintf("%06d", n.Int64()), nil
 }
+
+// hashage HMac avec salt d'un code
 func GenerateHash(code string) string {
 	mac := hmac.New(sha256.New, []byte(sercret))
 	mac.Write([]byte(code))
 	return hex.EncodeToString(mac.Sum(nil))
 }
 
+// comparaison d'un code et d'un hash
 func CompareHash(code, hashed string) bool {
 	codeHex := GenerateHash(code)
 

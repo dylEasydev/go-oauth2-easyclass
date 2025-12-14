@@ -15,10 +15,10 @@ type RefreshToken struct {
 	Active *bool     `gorm:"default:true"`
 
 	//valeur du token de rafraichissement
-	Signature string `gorm:"unique;not null"`
+	Signature string `gorm:"uniqueIndex:idx_signature;not null"`
 
 	//valeur du token d'accès associé
-	AccessSignature string `gorm:"unique;not null"`
+	AccessSignature string `gorm:"uniqueIndex:idx_signature;not null"`
 
 	RequestedAt time.Time `gorm:"not null"`
 

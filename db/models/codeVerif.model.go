@@ -22,7 +22,7 @@ const (
 type CodeVerif struct {
 	ID uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	//code hashé en BD
-	Code string `gorm:"not null"`
+	Code string `gorm:"not null;index"`
 	//code en clair
 	rawCode string
 
@@ -49,7 +49,7 @@ func (CodeVerif) TableName() string {
 // récupération de l'objet polymorphe scanner dans la base de leur héritage
 func (codeverif *CodeVerif) GetForeign(tx *gorm.DB) (interfaces.UserInterface, error) {
 	foreign := UserBase{}
-	if err := tx.Table(codeverif.VerifiableType).Select("id", "email", "username", "password").Where(map[string]any{"id": codeverif.VerifiableID}).Take(&foreign).Error; err != nil {
+	if err := tx.Table(codeverif.VerifiableType).Select("id", "email", "user_name", "password").Where(map[string]any{"id": codeverif.VerifiableID}).Take(&foreign).Error; err != nil {
 		return nil, err
 	}
 	return &foreign, nil
@@ -109,6 +109,6 @@ func (codeverif *CodeVerif) MarkUsed(tx *gorm.DB) error {
 	txSession := tx.Session(&gorm.Session{SkipHooks: true})
 	ctx := context.Background()
 	now := time.Now().UTC()
-	_, err := gorm.G[CodeVerif](txSession).Where(map[string]any{"id": codeverif.ID}).Updates(ctx, CodeVerif{UseAt: &now})
+	_, err := gorm.G[CodeVerif](txSession).Where(&CodeVerif{ID: codeverif.ID}).Updates(ctx, CodeVerif{UseAt: &now})
 	return err
 }

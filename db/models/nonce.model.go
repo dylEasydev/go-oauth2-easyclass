@@ -14,7 +14,7 @@ type Nonce struct {
 
 	//jeton d'accès
 	AccessToken string    `gorm:"not null"`
-	Nonce       string    `gorm:"unique;not null"`
+	Nonce       string    `gorm:"unique;not null;index"`
 	ExpiresAt   time.Time `gorm:"index"`
 
 	//timestamps

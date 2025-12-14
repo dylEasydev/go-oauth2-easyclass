@@ -13,6 +13,7 @@ func PtrBool(val bool) *bool {
 	return &val
 }
 
+// intersection des scopes de client et d'utilisateur
 func IntersectScopes(clientScopes, userScopes []string) []string {
 	result := make([]string, len(clientScopes))
 	setScopes := make(map[string]bool, len(userScopes))
@@ -29,6 +30,7 @@ func IntersectScopes(clientScopes, userScopes []string) []string {
 	return result
 }
 
+// lecture de clé privé RSA
 func LoadPrivateKey(fileName string) (*rsa.PrivateKey, error) {
 	baseDir, _ := os.Getwd()
 	fullPath := path.Join(baseDir, "key/", fileName+".key")
@@ -52,6 +54,7 @@ func LoadPrivateKey(fileName string) (*rsa.PrivateKey, error) {
 	}
 }
 
+// lecture de clé public RSA
 func LoadPublicKey(fileName string) (*rsa.PublicKey, error) {
 	baseDir, _ := os.Getwd()
 	fullPath := path.Join(baseDir, "key/", fileName+".key")

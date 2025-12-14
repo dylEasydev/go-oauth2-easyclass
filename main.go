@@ -13,9 +13,13 @@ import (
 
 func main() {
 
+	//chargement du fichier env
 	_ = godotenv.Load()
 
+	//initailisation du serveur
 	server := gin.Default()
+
+	//intialisation de la BD
 	store := db.New()
 
 	port := os.Getenv("PORT")
@@ -30,6 +34,7 @@ func main() {
 	router.SignRouter()
 	router.CodeRouter()
 
+	//démarrage du serveur https
 	if err := server.RunTLS(":"+port, "./key/server.pem", "./key/server.key"); err != nil {
 		log.Fatal("Erreur du démarrage du serveur", err)
 	}

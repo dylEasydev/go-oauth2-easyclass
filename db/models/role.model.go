@@ -10,8 +10,10 @@ import (
 	"github.com/dylEasydev/go-oauth2-easyclass/validators"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
+// structure de lecture des permisssions
 type ScopeJSON struct {
 	ScopeName     string `json:"scopeName"`
 	ScopeDescript string `json:"scopeDescript"`
@@ -23,8 +25,8 @@ type ScopeData struct {
 // structure des role d'utilisateur (admin , teacher , student ...)
 type Role struct {
 	ID           uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
-	RoleName     string    `gorm:"column:rolename;not null;unique" validate:"required,rowallowed"`
-	RoleDescript string    `gorm:"column:roledescript"`
+	RoleName     string    `gorm:"column:role_name;not null;uniqueIndex" validate:"required,rowallowed"`
+	RoleDescript string    `gorm:"column:role_descript"`
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -46,8 +48,7 @@ func (role *Role) BeforeSave(tx *gorm.DB) error {
 // fonction ajout des permission d'un role
 func (role *Role) AddScope(tx *gorm.DB) (err error) {
 	// construction du chemin directeur .
-	name := fmt.Sprintf("ressources/scope_%s", strings.ToLower(role.RoleName))
-
+	name := fmt.Sprintf("scope_%s", strings.ToLower(role.RoleName))
 	//lecture des permissions
 	data, err := utils.ReadJSON[ScopeData](name)
 	if err != nil {
@@ -64,16 +65,25 @@ func (role *Role) AddScope(tx *gorm.DB) (err error) {
 	//recherche des permission correspondant en BD
 	ctx := context.Background()
 
-	scopes, err := gorm.G[Scope](tx).Where("scopename IN ?", sliceName).Find(ctx)
+	scopes, err := gorm.G[Scope](tx).Where("scope_name IN ?", sliceName).Find(ctx)
 	if err != nil {
 		return
 	}
 
-	//remplacement des associations pou se role
-	if len(scopes) > 0 {
-		if err = tx.Model(role).Association("Scopes").Replace(&scopes); err != nil {
-			return fmt.Errorf("erreur remplacement scopes : %w", err)
-		}
+	perms := make([]AuthPermission, 0, len(scopes))
+	for _, s := range scopes {
+		perms = append(perms, AuthPermission{
+			RoleID:  role.ID,
+			ScopeID: s.ID,
+		})
+	}
+
+	if len(perms) == 0 {
+		return nil
+	}
+
+	if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&perms).Error; err != nil {
+		return err
 	}
 
 	return nil

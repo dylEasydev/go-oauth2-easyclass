@@ -5,6 +5,7 @@ package models
 import (
 	"time"
 
+	"github.com/dylEasydev/go-oauth2-easyclass/utils"
 	"github.com/dylEasydev/go-oauth2-easyclass/validators"
 	"github.com/go-jose/go-jose/v3"
 	"github.com/google/uuid"
@@ -73,10 +74,10 @@ func (Client) TableName() string {
 }
 
 // hooks avant la sauvegarde du client
-func (client *Client) BeforeSave(tx *gorm.DB) (err error) {
+func (client *Client) BeforeSave(tx *gorm.DB) error {
 	// Validation
-	if err = validators.ValidateStruct(client); err != nil {
-		return
+	if err := validators.ValidateStruct(client); err != nil {
+		return err
 	}
 	// Ne pas hasher si le client est public
 	if client.Public != nil && *client.Public {
@@ -249,7 +250,7 @@ func (c *Client) GetJSONWebKeys() *jose.JSONWebKeySet {
 
 // URI vers le end-point qui donne les clé JWK du client
 func (c *Client) GetJSONWebKeysURI() string {
-	return "/keys/client/jwks/" + c.ID.String()
+	return utils.URL_Host + "/keys/client/jwks/" + c.ID.String()
 }
 
 // Algorithme de signature pour Request Objects

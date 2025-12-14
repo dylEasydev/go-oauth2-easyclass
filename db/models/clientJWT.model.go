@@ -14,7 +14,7 @@ import (
 type ClientJWT struct {
 	ID        uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	Active    *bool     `gorm:"default:true"`
-	JTI       string    `gorm:"unique;not null"`
+	JTI       string    `gorm:"unique;not null;index"`
 	ExpiresAt time.Time
 
 	//timestamps

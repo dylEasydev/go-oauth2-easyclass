@@ -5,5 +5,5 @@ type TeacherBase struct {
 	UserBase
 
 	//nom de la matière qu'il veut enseigner
-	SubjectName string `gorm:"column:subjectname;not null" validate:"require,name"`
+	SubjectName string `gorm:"column:subject_name;not null" validate:"require,name"`
 }

@@ -20,17 +20,17 @@ func (TeacherTemp) TableName() string {
 	return "teacher_temp"
 }
 
-func (teacher *TeacherTemp) BeforeSave(tx *gorm.DB) (err error) {
-	if err = validators.ValidateStruct(teacher); err != nil {
-		return
+func (teacher *TeacherTemp) BeforeSave(tx *gorm.DB) error {
+	if err := validators.ValidateStruct(teacher); err != nil {
+		return err
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(teacher.Password), Cout_hash)
 	if err != nil {
-		return
+		return err
 	}
 
 	teacher.Password = string(hash)
-	return
+	return nil
 }
 
 func (teacher *TeacherTemp) AfterCreate(tx *gorm.DB) (err error) {

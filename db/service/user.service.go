@@ -23,7 +23,7 @@ type UserBody struct {
 }
 
 func (service *UserService) FindUserByName(name, email string) (*models.User, error) {
-	user, err := gorm.G[models.User](service.Db).Preload("Role.Scopes", nil).Preload(clause.Associations, nil).Where("username = ? or email = ?", name, email).First(*service.Ctx)
+	user, err := gorm.G[models.User](service.Db).Preload("Role.Scopes", nil).Preload(clause.Associations, nil).Where("user_name = ? or email = ?", name, email).First(*service.Ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -46,9 +46,10 @@ func (service *UserService) CreateUser(data *UserBody) (*models.User, error) {
 		txhooks := tx.Session(&gorm.Session{SkipHooks: true})
 		// association de l'utilisateur à un role
 		role := models.Role{
+			RoleName:     "admin",
 			RoleDescript: "role de l'administrateur",
 		}
-		if err := tx.FirstOrCreate(&role, models.Role{RoleName: "admin"}).Error; err != nil {
+		if err := tx.Where(models.Role{RoleName: role.RoleName}).FirstOrCreate(&role).Error; err != nil {
 			return fmt.Errorf("erreur lors de la création du rôle: %w", err)
 		}
 
@@ -60,20 +61,15 @@ func (service *UserService) CreateUser(data *UserBody) (*models.User, error) {
 				Password: data.Password,
 			},
 			RoleID: role.ID,
+			Role:   role,
+			Image: models.Image{
+				PicturesName: "profil_default.png",
+				UrlPictures:  fmt.Sprintf("%s/public/profil_default.png", utils.URL_Image),
+			},
 		}
 
 		if err := query.QueryCreate(tx, newUser); err != nil {
 			return fmt.Errorf("erreur lors de la création de l'utilisateur: %w", err)
-		}
-		image := models.Image{
-			PicturesName: "profil_default.png",
-			PictureID:    newUser.ID,
-			PictureType:  newUser.TableName(),
-			UrlPictures:  fmt.Sprintf("%s/public/profil_default.png", utils.URL_Image),
-		}
-		// création de l'image de profil
-		if err := query.QueryCreate(tx, &image); err != nil {
-			return fmt.Errorf("erreur lors de la création de l'image de profil: %w", err)
 		}
 
 		// création du code de vérification

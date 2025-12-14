@@ -47,7 +47,7 @@ func (s *StoreRequest) ClientJWKHanler(c *gin.Context) {
 }
 
 func JWKHandler(c *gin.Context) {
-	publickey, err := utils.LoadPublicKey("public.key")
+	publickey, err := utils.LoadPublicKey("public")
 	if err != nil {
 		httpErr := utils.HttpErrors{Status: http.StatusInternalServerError, Message: err.Error()}
 		c.Error(&httpErr)

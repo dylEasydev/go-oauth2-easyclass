@@ -9,7 +9,7 @@ import (
 )
 
 func FindUserByName[T any](ctx context.Context, tx *gorm.DB, name, email string) (*T, error) {
-	user, err := gorm.G[T](tx).Preload(clause.Associations, nil).Where("username = ? or email = ?", name, email).First(ctx)
+	user, err := gorm.G[T](tx).Preload(clause.Associations, nil).Where("user_name = ? or email = ?", name, email).First(ctx)
 	if err != nil {
 		return nil, err
 	}

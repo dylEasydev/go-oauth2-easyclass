@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dylEasydev/go-oauth2-easyclass/utils"
 	"github.com/google/uuid"
 	"github.com/mohae/deepcopy"
 	"github.com/ory/fosite"
@@ -131,7 +130,10 @@ func (s *Session) GetExtraClaims() map[string]interface{} {
 	var extra map[string]interface{}
 
 	if s.Extra != nil {
-		_ = json.Unmarshal(s.Extra, &extra)
+		err := json.Unmarshal(s.Extra, &extra)
+		if err != nil {
+			return nil
+		}
 	}
 
 	return extra
@@ -201,47 +203,18 @@ func (s *Session) IDTokenClaims() *jwt.IDTokenClaims {
 	// iat : temps d'émission = maintenant (ou si présent dans extra, on l'utilise)
 	now := time.Now().UTC()
 
-	// requested at (rat) : si fourni dans extra on l'utilise, sinon now
-	if rat, ok := claims.Extra["rat"].(time.Time); ok {
-		claims.RequestedAt = rat
-	} else if str, ok := claims.Extra["rat"].(string); ok {
-		// tentative de parsing si l'utilisateur a stocké une string
-		if t, err := time.Parse(time.RFC3339, str); err == nil {
-			claims.RequestedAt = t
-		} else {
-			claims.RequestedAt = now
-		}
-	} else {
-		claims.RequestedAt = now
-	}
+	claims.RequestedAt = now
 
-	// at_hash / c_hash : si access_token ou code sont fournis dans Extra,
-	// on calcule l'hash conformément à l'algorithme de signature (RS256/ES256/etc).
-	// alg preferé : essayer extra["alg"], sinon default "RS256".
+	//algorithme de hash
 	alg := "RS256"
-	if a, ok := claims.Extra["alg"].(string); ok && a != "" {
-		alg = a
-	} else {
-		// si le client a une préférence d'alg (ex: RequestObjectSigningAlg), on peut l'utiliser
-		if s.Client.ID != uuid.Nil {
-			alg = s.Client.GetRequestObjectSigningAlgorithm()
-			if alg == "" {
-				alg = "RS256"
-			}
+	if s.Client.ID != uuid.Nil {
+		alg = s.Client.GetRequestObjectSigningAlgorithm()
+		if alg == "" {
+			alg = "RS256"
 		}
 	}
 
-	// calcul de c_hash si code dans extra
-	if code, ok := claims.Extra["code"].(string); ok && code != "" {
-		if h, err := utils.OidcHash(code, alg); err == nil {
-			claims.CodeHash = h
-		}
-	}
-
-	// jti : si fourni dans extra ou générer localement
-	if jti, ok := claims.Extra["jti"].(string); ok && jti != "" {
-		claims.JTI = jti
-	}
+	claims.JTI = uuid.New().String()
 
 	return claims
 }
@@ -255,14 +228,7 @@ func (s *Session) IDTokenHeaders() *jwt.Headers {
 
 	headers := &jwt.Headers{}
 
-	// alg : on tente de récupérer depuis extra ou depuis la config du client
 	alg := "RS256"
-	if extra := s.GetExtraClaims(); extra != nil {
-		if a, ok := extra["alg"].(string); ok && a != "" {
-			alg = a
-		}
-	}
-
 	if s.Client.ID != uuid.Nil {
 		a := s.Client.GetRequestObjectSigningAlgorithm()
 		if a != "" {
@@ -277,14 +243,6 @@ func (s *Session) IDTokenHeaders() *jwt.Headers {
 		if jwks != nil && len(jwks.Keys) > 0 {
 			if jwks.Keys[0].KeyID != "" {
 				kid = jwks.Keys[0].KeyID
-			}
-		}
-	}
-	// fallback : extra["kid"]
-	if kid == "" {
-		if extra := s.GetExtraClaims(); extra != nil {
-			if k, ok := extra["kid"].(string); ok && k != "" {
-				kid = k
 			}
 		}
 	}

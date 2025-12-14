@@ -1,5 +1,7 @@
 package utils
 
+// utils pour le parsing des erreur HTTP
+
 type HttpErrorsInterface interface {
 	Error() string
 	GetStatus() int

@@ -17,7 +17,7 @@ type AuthorizationCode struct {
 	Active *bool     `gorm:"default:true"`
 
 	//code d'authorization unique
-	Code string `gorm:"unique;not null"`
+	Code string `gorm:"uniqueIndex;not null"`
 
 	//temps d'émission de la requête
 	RequestedAt time.Time

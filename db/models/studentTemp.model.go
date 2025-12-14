@@ -24,17 +24,17 @@ func (StudentTemp) TableName() string {
 
 // hooks avant la sauvegarde
 // validation et hash du password
-func (student *StudentTemp) BeforeSave(tx *gorm.DB) (err error) {
-	if err = validators.ValidateStruct(student); err != nil {
-		return
+func (student *StudentTemp) BeforeSave(tx *gorm.DB) error {
+	if err := validators.ValidateStruct(student); err != nil {
+		return err
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(student.Password), Cout_hash)
 	if err != nil {
-		return
+		return err
 	}
 
 	student.Password = string(hash)
-	return
+	return nil
 }
 
 // hooks après la creation de l'utilisateur
@@ -61,9 +61,10 @@ func (student *StudentTemp) SavePerm(tx *gorm.DB) (err error) {
 
 		// association de l'utilisateur à un role
 		role := Role{
+			RoleName:     "student",
 			RoleDescript: "role de l'étudiant",
 		}
-		if err := tx.FirstOrCreate(&role, Role{RoleName: "student"}).Error; err != nil {
+		if err := tx.Where(Role{RoleName: role.RoleName}).FirstOrCreate(&role).Error; err != nil {
 			return fmt.Errorf("erreur lors de la création du rôle: %w", err)
 		}
 
@@ -74,23 +75,16 @@ func (student *StudentTemp) SavePerm(tx *gorm.DB) (err error) {
 				Password: student.Password,
 			},
 			RoleID: role.ID,
+			Role:   role,
+			Image: Image{
+				PicturesName: "profil_default.png",
+				UrlPictures:  fmt.Sprintf("%s/public/profil_default.png", utils.URL_Image),
+			},
 		}
 
 		// création de l'utilisateur permanent
 		if err := query.QueryCreate(txhooks, &user); err != nil {
 			return fmt.Errorf("erreur lors de la création de l'utilisateur: %w", err)
-		}
-
-		image := Image{
-			PicturesName: "profil_default.png",
-			UrlPictures:  fmt.Sprintf("%s/public/profil_default.png", utils.URL_Image),
-			PictureID:    user.ID,
-			PictureType:  user.TableName(),
-		}
-
-		// création de l'image de profil
-		if err := query.QueryCreate(tx, &image); err != nil {
-			return fmt.Errorf("erreur lors de la création de l'image de profil: %w", err)
 		}
 
 		// création du code de vérification

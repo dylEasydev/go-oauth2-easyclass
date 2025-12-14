@@ -28,11 +28,11 @@ func (User) TableName() string {
 // si modification du password hash du mots de passe avant la sauvegarde
 func (user *User) BeforeSave(tx *gorm.DB) error {
 	if err := validators.ValidateStruct(user); err != nil {
-		return nil
+		return err
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), Cout_hash)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	user.Password = string(hash)

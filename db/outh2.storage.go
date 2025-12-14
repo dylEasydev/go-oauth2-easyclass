@@ -319,7 +319,7 @@ func (store *Store) RotateRefreshToken(ctx context.Context, requestID string, re
 
 func (store *Store) Authenticate(ctx context.Context, name string, secret string) error {
 
-	user, err := gorm.G[models.User](store.db).Where("username = ?", name).First(ctx)
+	user, err := gorm.G[models.User](store.db).Where("user_name = ?", name).First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return fosite.ErrNotFound.WithDebug("Invalid credentials")
@@ -336,7 +336,7 @@ func (store *Store) Authenticate(ctx context.Context, name string, secret string
 }
 
 func (store *Store) GetUser(ctx context.Context, username string) (*models.User, error) {
-	results, err := gorm.G[models.User](store.db).Preload("Roles.Scopes", nil).Preload(clause.Associations, nil).Where("username = ?", username).First(ctx)
+	results, err := gorm.G[models.User](store.db).Preload("Roles.Scopes", nil).Preload(clause.Associations, nil).Where("user_name = ?", username).First(ctx)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

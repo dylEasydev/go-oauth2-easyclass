@@ -7,9 +7,10 @@ import (
 	"path"
 )
 
+// lecture d'un ficiher json dans ../ressources/
 func ReadJSON[T any](fileName string) (*T, error) {
 	baseDir, _ := os.Getwd()
-	fullPath := path.Join(baseDir, "ressource/", fileName+".json")
+	fullPath := path.Join(baseDir, "ressources/", fileName+".json")
 	file, err := os.Open(fullPath)
 	if err != nil {
 		return nil, fmt.Errorf("erreur ouverture fichier: %w", err)

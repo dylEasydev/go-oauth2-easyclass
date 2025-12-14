@@ -14,7 +14,7 @@ type AccessToken struct {
 	ID     uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	Active *bool     `gorm:"default:true"`
 	//valeur unique du token ( bloc de carractère générer aléatoirement)
-	Signature string `gorm:"unique;not null"`
+	Signature string `gorm:"uniqueIndex;not null"`
 
 	RequestedAt time.Time
 
