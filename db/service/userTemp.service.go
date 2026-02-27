@@ -1,20 +1,21 @@
 package service
 
 import (
-	"context"
-	"errors"
-
 	"github.com/dylEasydev/go-oauth2-easyclass/db/interfaces"
 	"gorm.io/gorm"
 )
 
-var ErrDestroy = errors.New("impossible de supprimer l'utilisateur temporaire")
-
 type UsertempService struct {
-	Ctx *context.Context
-	Db  *gorm.DB
+	Db *gorm.DB
 }
 
+func InitUserTempService(db *gorm.DB) *UsertempService {
+	return &UsertempService{
+		Db: db,
+	}
+}
+
+// sauvegarde de user_temp en user
 func (service *UsertempService) SaveUser(user interfaces.UserTempInterafce) error {
 	if err := user.SavePerm(service.Db); err != nil {
 		return err

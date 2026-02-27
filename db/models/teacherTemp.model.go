@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// structure des ensignant temporaire
+// structure des enseignant temporaire
 type TeacherTemp struct {
 	TeacherBase
 	//code de verification envoyer par mail pour sa validation

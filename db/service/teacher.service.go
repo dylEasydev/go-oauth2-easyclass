@@ -10,7 +10,7 @@ import (
 )
 
 type TeacherService struct {
-	Ctx *context.Context
+	Ctx context.Context
 	Db  *gorm.DB
 }
 
@@ -19,8 +19,15 @@ type TeacherBody struct {
 	Subject string
 }
 
+func InitTeacherService(ctx context.Context, db *gorm.DB) *TeacherService {
+	return &TeacherService{
+		Ctx: ctx,
+		Db:  db,
+	}
+}
+
 func (service *TeacherService) CreateUser(data *TeacherBody) (*models.TeacherTemp, error) {
-	teacherFind, err := FindUserByName[models.TeacherTemp](*service.Ctx, service.Db, data.Name, data.Email)
+	teacherFind, err := FindUserByName[models.TeacherTemp](service.Ctx, service.Db, data.Name, data.Email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			newTeacher := models.TeacherTemp{
@@ -50,11 +57,11 @@ func (service *TeacherService) CreateUser(data *TeacherBody) (*models.TeacherTem
 			SubjectName: data.Subject,
 		},
 	}
-	_, err = gorm.G[models.TeacherTemp](service.Db).Where("id = ?", teacherFind.ID).Updates(*service.Ctx, teacherUpadate)
+	_, err = gorm.G[models.TeacherTemp](service.Db).Where("id = ?", teacherFind.ID).Updates(service.Ctx, teacherUpadate)
 	if err != nil {
 		return nil, err
 	}
-	codeservice := &CodeService{Db: service.Db, Ctx: service.Ctx}
+	codeservice := InitCodeService(service.Ctx, service.Db)
 	err = codeservice.UpdateCodeVerif(teacherFind, teacherFind.CodeVerif.Code)
 	if err != nil {
 		return nil, err

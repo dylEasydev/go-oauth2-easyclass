@@ -13,7 +13,7 @@ import (
 )
 
 type UserService struct {
-	Ctx *context.Context
+	Ctx context.Context
 	Db  *gorm.DB
 }
 type UserBody struct {
@@ -22,8 +22,16 @@ type UserBody struct {
 	Password string
 }
 
+func InitUserService(ctx context.Context, db *gorm.DB) *UserService {
+	return &UserService{
+		Ctx: ctx,
+		Db:  db,
+	}
+}
+
 func (service *UserService) FindUserByName(name, email string) (*models.User, error) {
-	user, err := gorm.G[models.User](service.Db).Preload("Role.Scopes", nil).Preload(clause.Associations, nil).Where("user_name = ? or email = ?", name, email).First(*service.Ctx)
+
+	user, err := gorm.G[models.User](service.Db).Joins(clause.JoinTarget{Association: "CodeVerif"}, nil).Joins(clause.JoinTarget{Association: "Image"}, nil).Joins(clause.JoinTarget{Association: "Role"}, nil).Preload("Role.Scopes", nil).Where("user_name = ? or email = ?", name, email).First(service.Ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +40,7 @@ func (service *UserService) FindUserByName(name, email string) (*models.User, er
 }
 
 func (service *UserService) FindUserById(id uuid.UUID) (*models.User, error) {
-	user, err := gorm.G[models.User](service.Db).Preload("Roles.Scopes", nil).Preload(clause.Associations, nil).Where("id = ? ", id).First(*service.Ctx)
+	user, err := gorm.G[models.User](service.Db).Joins(clause.JoinTarget{Association: "CodeVerif"}, nil).Joins(clause.JoinTarget{Association: "Image"}, nil).Joins(clause.JoinTarget{Association: "Role"}, nil).Preload("Role.Scopes", nil).Where("id = ? ", id).First(service.Ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +50,7 @@ func (service *UserService) FindUserById(id uuid.UUID) (*models.User, error) {
 
 func (service *UserService) CreateUser(data *UserBody) (*models.User, error) {
 	var newUser *models.User
-	err := service.Db.WithContext(*service.Ctx).Transaction(func(tx *gorm.DB) error {
+	err := service.Db.WithContext(service.Ctx).Transaction(func(tx *gorm.DB) error {
 		txhooks := tx.Session(&gorm.Session{SkipHooks: true})
 		// association de l'utilisateur à un role
 		role := models.Role{

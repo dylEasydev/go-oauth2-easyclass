@@ -14,7 +14,7 @@ func (r *router) SignRouter() {
 
 	{
 		signGroup.POST("/teacher", r.StoreRequest.SignTeacher)
-		signGroup.POST("/studentr", r.StoreRequest.SignStudent)
+		signGroup.POST("/student", r.StoreRequest.SignStudent)
 		signGroup.POST("/admin", middleware.AuthMiddleware(publicKey), r.StoreRequest.SignStudent)
 	}
 }

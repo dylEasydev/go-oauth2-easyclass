@@ -25,7 +25,7 @@ func (store *Store) CreateOpenIDConnectSession(ctx context.Context, authorizeCod
 func (store *Store) GetOpenIDConnectSession(ctx context.Context, authorizeCode string, requester fosite.Requester) (fosite.Requester, error) {
 
 	// recherche du code d'authorisation correspondant (authorizeCode)
-	authorizeCodeModel, err := gorm.G[models.AuthorizationCode](store.db).Preload("Session.User", nil).Preload(clause.Associations, nil).Where(&models.AuthorizationCode{Code: authorizeCode}).First(ctx)
+	authorizeCodeModel, err := gorm.G[models.AuthorizationCode](store.db).Joins(clause.JoinTarget{Association: "Client"}, nil).Joins(clause.JoinTarget{Association: "Session"}, nil).Joins(clause.JoinTarget{Association: "Session.User"}, nil).Where(&models.AuthorizationCode{Code: authorizeCode}).First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fosite.ErrNotFound

@@ -20,7 +20,7 @@ func SendVerificationCode(dest string, code string, name string) error {
 	m.SetHeader("To", dest)
 	m.SetHeader("Subject", "Votre code de vérification")
 
-	expiredAt := time.Now().UTC().Add(1 * time.Hour)
+	expiredAt := time.Now().UTC().Add(1 * time.Hour).UTC()
 
 	plain := fmt.Sprintf("Bonjour,\n\nVotre code de vérification est : %s\n\nCe code expirera :%s .\n", code, expiredAt.Format("16h04"))
 

@@ -33,7 +33,7 @@ func (s *StoreRequest) SignTeacher(ctx *gin.Context) {
 
 	context := ctx.Request.Context()
 
-	if err := ctx.ShouldBindWith(&bodyTeacher, binding.Query); err != nil {
+	if err := ctx.ShouldBindWith(&bodyTeacher, binding.JSON); err != nil {
 		httpErr := utils.HttpErrors{Status: http.StatusBadRequest, Message: err.Error()}
 		ctx.Error(&httpErr)
 		return
@@ -71,7 +71,7 @@ func (s *StoreRequest) SignTeacher(ctx *gin.Context) {
 		ctx.Error(&httpErr)
 		return
 	}
-	teacherService := service.TeacherService{Db: s.Store.GetDb(), Ctx: &context}
+	teacherService := service.InitTeacherService(context, s.Store.GetDb())
 	data := service.TeacherBody{
 		UserBody: service.UserBody{
 			Name:     bodyTeacher.UserName,
@@ -97,13 +97,12 @@ func (s *StoreRequest) SignStudent(ctx *gin.Context) {
 
 	context := ctx.Request.Context()
 
-	if err := ctx.ShouldBindWith(&bodyStudent, binding.Query); err != nil {
+	if err := ctx.ShouldBindWith(&bodyStudent, binding.JSON); err != nil {
 		httpErr := utils.HttpErrors{Status: http.StatusBadRequest, Message: err.Error()}
 		ctx.Error(&httpErr)
 		return
 	}
 
-	//recherche parmis la table des utilisateur
 	userFind, err := service.FindUserByName[models.User](context, s.Store.GetDb(), bodyStudent.UserName, bodyStudent.Email)
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -135,7 +134,8 @@ func (s *StoreRequest) SignStudent(ctx *gin.Context) {
 		ctx.Error(&httpErr)
 		return
 	}
-	studentService := service.StudentService{Db: s.Store.GetDb(), Ctx: &context}
+
+	studentService := service.InitStudentService(context, s.Store.GetDb())
 	data := service.UserBody{
 		Name:     bodyStudent.UserName,
 		Email:    bodyStudent.Email,
@@ -208,7 +208,7 @@ func (s *StoreRequest) SignAdmin(ctx *gin.Context) {
 		ctx.Error(&httpErr)
 		return
 	}
-	userService := service.UserService{Db: s.Store.GetDb(), Ctx: &context}
+	userService := service.InitUserService(context, s.Store.GetDb())
 	data := service.UserBody{
 		Name:     bodyUser.UserName,
 		Email:    bodyUser.Email,

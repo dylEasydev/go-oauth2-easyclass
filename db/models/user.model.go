@@ -7,7 +7,10 @@ import (
 	"gorm.io/gorm"
 )
 
-const Cout_hash = 10
+// constante de hash bcrypt
+const (
+	Cout_hash = 10
+)
 
 // structure du model utilisateur permanent
 type User struct {

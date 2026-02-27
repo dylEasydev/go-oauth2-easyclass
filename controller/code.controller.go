@@ -28,26 +28,26 @@ func (s *StoreRequest) VerifCode(ctx *gin.Context) {
 
 	context := ctx.Request.Context()
 
+	if err := ctx.ShouldBindUri(&idUser); err != nil {
+		httpErr := utils.HttpErrors{Status: http.StatusBadRequest, Message: err.Error()}
+		ctx.Error(&httpErr)
+		return
+	}
 	id, err := uuid.Parse(idUser.ID)
 	if err != nil {
 		httpErr := utils.HttpErrors{Status: http.StatusBadRequest, Message: err.Error()}
 		ctx.Error(&httpErr)
 		return
 	}
-	if err := ctx.ShouldBindUri(&idUser); err != nil {
-		httpErr := utils.HttpErrors{Status: http.StatusBadRequest, Message: err.Error()}
-		ctx.Error(&httpErr)
-		return
-	}
 
-	if err := ctx.ShouldBindWith(&codeBody, binding.Query); err != nil {
+	if err := ctx.ShouldBindWith(&codeBody, binding.JSON); err != nil {
 		httpErr := utils.HttpErrors{Status: http.StatusBadRequest, Message: err.Error()}
 		ctx.Error(&httpErr)
 		return
 	}
 	codeHash := utils.GenerateHash(codeBody.Code)
 
-	codeservice := service.CodeService{Db: s.Store.GetDb(), Ctx: &context}
+	codeservice := service.InitCodeService(context, s.Store.GetDb())
 
 	codeVerif, err := codeservice.FindCode(codeHash, id)
 	if err != nil {
@@ -81,7 +81,7 @@ func (s *StoreRequest) VerifCode(ctx *gin.Context) {
 		return
 	}
 
-	userTempservice := service.UsertempService{Db: s.Store.GetDb(), Ctx: &context}
+	userTempservice := service.InitUserTempService(s.Store.GetDb())
 	if err := userTempservice.SaveUser(userTemp); err != nil {
 		if !errors.Is(err, service.ErrDestroy) {
 			httpErr := utils.HttpErrors{Status: http.StatusInternalServerError, Message: err.Error()}
@@ -113,7 +113,7 @@ func (s *StoreRequest) RestartCode(ctx *gin.Context) {
 		return
 	}
 
-	codeservice := service.CodeService{Db: s.Store.GetDb(), Ctx: &context}
+	codeservice := service.InitCodeService(context, s.Store.GetDb())
 	user, err := codeservice.GetForeignByName(codeUri.TableName, codeUri.UserName)
 	if err != nil {
 		httpErr := utils.HttpErrors{Status: http.StatusInternalServerError, Message: err.Error()}

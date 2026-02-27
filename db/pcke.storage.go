@@ -63,7 +63,7 @@ func (store *Store) CreatePKCERequestSession(ctx context.Context, signature stri
 func (store *Store) GetPKCERequestSession(ctx context.Context, signature string, session fosite.Session) (fosite.Requester, error) {
 	var result models.PKCE
 
-	result, err := gorm.G[models.PKCE](store.db).Preload("Session.User", nil).Preload(clause.Associations, nil).Where(&models.PKCE{Signature: signature}).First(ctx)
+	result, err := gorm.G[models.PKCE](store.db).Joins(clause.JoinTarget{Association: "Client"}, nil).Joins(clause.JoinTarget{Association: "Session"}, nil).Joins(clause.JoinTarget{Association: "Session.User"}, nil).Where(&models.PKCE{Signature: signature}).First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fosite.ErrNotFound

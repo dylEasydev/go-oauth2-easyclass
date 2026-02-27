@@ -72,7 +72,7 @@ func (store *Store) CreateAuthorizeCodeSession(ctx context.Context, code string,
 func (store *Store) GetAuthorizeCodeSession(ctx context.Context, code string, session fosite.Session) (request fosite.Requester, err error) {
 
 	// recherche du code d'authorization
-	authorize_code, err := gorm.G[models.AuthorizationCode](store.db).Preload("Session.User", nil).Preload(clause.Associations, nil).Where(&models.AuthorizationCode{Code: code}).First(ctx)
+	authorize_code, err := gorm.G[models.AuthorizationCode](store.db).Joins(clause.JoinTarget{Association: "Client"}, nil).Joins(clause.JoinTarget{Association: "Session"}, nil).Joins(clause.JoinTarget{Association: "Session.User"}, nil).Where(&models.AuthorizationCode{Code: code}).First(ctx)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -111,7 +111,7 @@ func (store *Store) GetAuthorizeCodeSession(ctx context.Context, code string, se
 
 func (store *Store) InvalidateAuthorizeCodeSession(ctx context.Context, code string) (err error) {
 
-	authorize_code, err := gorm.G[models.AuthorizationCode](store.db).Preload("Session.User", nil).Preload(clause.Associations, nil).Where(&models.AuthorizationCode{Code: code}).First(ctx)
+	authorize_code, err := gorm.G[models.AuthorizationCode](store.db).Joins(clause.JoinTarget{Association: "Client"}, nil).Joins(clause.JoinTarget{Association: "Session"}, nil).Joins(clause.JoinTarget{Association: "Session.User"}, nil).Where(&models.AuthorizationCode{Code: code}).First(ctx)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -174,7 +174,7 @@ func (store *Store) CreateAccessTokenSession(ctx context.Context, signature stri
 
 func (store *Store) GetAccessTokenSession(ctx context.Context, signature string, session fosite.Session) (request fosite.Requester, err error) {
 
-	access_token, err := gorm.G[models.AccessToken](store.db).Preload("Session.User", nil).Preload(clause.Associations, nil).Where(&models.AccessToken{Signature: signature}).First(ctx)
+	access_token, err := gorm.G[models.AccessToken](store.db).Joins(clause.JoinTarget{Association: "Client"}, nil).Joins(clause.JoinTarget{Association: "Session"}, nil).Joins(clause.JoinTarget{Association: "Session.User"}, nil).Where(&models.AccessToken{Signature: signature}).First(ctx)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -259,7 +259,7 @@ func (store *Store) CreateRefreshTokenSession(ctx context.Context, signature str
 
 func (store *Store) GetRefreshTokenSession(ctx context.Context, signature string, session fosite.Session) (request fosite.Requester, err error) {
 
-	result, err := gorm.G[models.RefreshToken](store.db).Preload("Session.User", nil).Preload(clause.Associations, nil).Where(&models.RefreshToken{Signature: signature}).First(ctx)
+	result, err := gorm.G[models.RefreshToken](store.db).Joins(clause.JoinTarget{Association: "Client"}, nil).Joins(clause.JoinTarget{Association: "Session"}, nil).Joins(clause.JoinTarget{Association: "Session.User"}, nil).Where(&models.RefreshToken{Signature: signature}).First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fosite.ErrNotFound
@@ -336,7 +336,7 @@ func (store *Store) Authenticate(ctx context.Context, name string, secret string
 }
 
 func (store *Store) GetUser(ctx context.Context, username string) (*models.User, error) {
-	results, err := gorm.G[models.User](store.db).Preload("Roles.Scopes", nil).Preload(clause.Associations, nil).Where("user_name = ?", username).First(ctx)
+	results, err := gorm.G[models.User](store.db).Joins(clause.JoinTarget{Association: "CodeVerif"}, nil).Joins(clause.JoinTarget{Association: "Image"}, nil).Joins(clause.JoinTarget{Association: "Role"}, nil).Preload("Role.Scopes", nil).Where("user_name = ?", username).First(ctx)
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

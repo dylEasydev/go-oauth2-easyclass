@@ -19,7 +19,8 @@ type UserBase struct {
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
-// implementation de interfac userInterface
+// implementation de interface  userInterface
+
 func (user *UserBase) GetMail() string {
 	return user.Email
 }

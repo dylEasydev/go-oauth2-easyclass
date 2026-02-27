@@ -70,7 +70,7 @@ func (store *Store) CreatePARSession(ctx context.Context, requestURI string, req
 
 func (store *Store) GetPARSession(ctx context.Context, requestURI string) (fosite.AuthorizeRequester, error) {
 
-	par, err := gorm.G[models.PARRequest](store.db).Preload("Session.User", nil).Preload(clause.Associations, nil).Where(&models.PARRequest{RequestURI: requestURI}).First(ctx)
+	par, err := gorm.G[models.PARRequest](store.db).Joins(clause.JoinTarget{Association: "Client"}, nil).Joins(clause.JoinTarget{Association: "Session"}, nil).Joins(clause.JoinTarget{Association: "Session.User"}, nil).Where(&models.PARRequest{RequestURI: requestURI}).First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fosite.ErrNotFound
@@ -114,6 +114,7 @@ func (store *Store) GetPARSession(ctx context.Context, requestURI string) (fosit
 
 	return rq, nil
 }
+
 func (store *Store) DeletePARSession(ctx context.Context, requestURI string) (err error) {
 	if _, err := gorm.G[models.PARRequest](store.db.Unscoped()).Where(&models.PARRequest{RequestURI: requestURI}).Delete(ctx); err != nil {
 		return fmt.Errorf("erreur de supression du PAR: %w", err)

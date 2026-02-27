@@ -20,6 +20,7 @@ func ErrorHandler() gin.HandlerFunc {
 					"sucess":  false,
 					"message": httpErr.Error(),
 				})
+				return
 			}
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"sucess":  false,
