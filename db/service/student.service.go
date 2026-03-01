@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"log"
 
 	"github.com/dylEasydev/go-oauth2-easyclass/db/models"
 	"github.com/dylEasydev/go-oauth2-easyclass/db/query"
@@ -11,11 +10,11 @@ import (
 )
 
 type StudentService struct {
-	Ctx context.Context
+	Ctx *context.Context
 	Db  *gorm.DB
 }
 
-func InitStudentService(ctx context.Context, db *gorm.DB) *StudentService {
+func InitStudentService(ctx *context.Context, db *gorm.DB) *StudentService {
 	return &StudentService{
 		Ctx: ctx,
 		Db:  db,
@@ -25,7 +24,6 @@ func InitStudentService(ctx context.Context, db *gorm.DB) *StudentService {
 func (service *StudentService) CreateUser(data *UserBody) (*models.StudentTemp, error) {
 	studentFind, err := FindUserByName[models.StudentTemp](service.Ctx, service.Db, data.Name, data.Email)
 	if err != nil {
-		log.Println(err)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			newStudent := models.StudentTemp{
 				UserBase: models.UserBase{
@@ -37,18 +35,19 @@ func (service *StudentService) CreateUser(data *UserBody) (*models.StudentTemp, 
 			if err := query.QueryCreate(service.Db, &newStudent); err != nil {
 				return nil, err
 			}
-			return &newStudent, err
+			return &newStudent, nil
 		}
 		return nil, err
 	}
 	studentUpdate := models.StudentTemp{
 		UserBase: models.UserBase{
+			ID:       studentFind.ID,
 			UserName: data.Name,
 			Email:    data.Email,
 			Password: data.Password,
 		},
 	}
-	_, err = gorm.G[models.StudentTemp](service.Db).Where("id = ?", studentFind.ID).Updates(service.Ctx, studentUpdate)
+	err = service.Db.WithContext(*service.Ctx).Model(studentFind).Where("id = ?", studentFind.ID).Updates(&studentUpdate).Error
 	if err != nil {
 		return nil, err
 	}

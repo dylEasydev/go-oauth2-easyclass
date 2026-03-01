@@ -17,7 +17,6 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"gorm.io/gorm/logger"
 )
 
 // structure de sauvegarde
@@ -192,7 +191,7 @@ func New() *Store {
 	)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger:      logger.Default.LogMode(logger.Error),
+		//Logger:      logger.Default.LogMode(logger.Info),
 		PrepareStmt: true,
 	})
 	if err != nil {

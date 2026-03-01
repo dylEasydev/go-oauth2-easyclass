@@ -120,9 +120,7 @@ func (store *Store) InvalidateAuthorizeCodeSession(ctx context.Context, code str
 		return err
 	}
 
-	_, err = gorm.G[models.AuthorizationCode](store.db).Where(&models.AuthorizationCode{ID: authorize_code.ID}).Updates(ctx, models.AuthorizationCode{Active: utils.PtrBool(false)})
-
-	if err != nil {
+	if err := store.db.WithContext(ctx).Model(&authorize_code).Where(&models.AuthorizationCode{ID: authorize_code.ID}).Updates(&models.AuthorizationCode{Active: utils.PtrBool(false)}).Error; err != nil {
 		return fmt.Errorf("erreur d'invalidation du token: %w", err)
 	}
 
@@ -309,8 +307,7 @@ func (store *Store) RotateRefreshToken(ctx context.Context, requestID string, re
 		return fmt.Errorf("erreur de recherche du refresh token: %w", err)
 	}
 
-	_, err = gorm.G[models.RefreshToken](store.db).Where(&models.RefreshToken{ID: refreshToken.ID}).Updates(ctx, models.RefreshToken{Active: utils.PtrBool(false)})
-	if err != nil {
+	if err := store.db.WithContext(ctx).Model(&refreshToken).Where(&models.RefreshToken{ID: refreshToken.ID}).Updates(&models.RefreshToken{Active: utils.PtrBool(false)}).Error; err != nil {
 		return fmt.Errorf("erreur d'invalidation du refresh token: %w", err)
 	}
 

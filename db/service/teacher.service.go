@@ -10,7 +10,7 @@ import (
 )
 
 type TeacherService struct {
-	Ctx context.Context
+	Ctx *context.Context
 	Db  *gorm.DB
 }
 
@@ -19,7 +19,7 @@ type TeacherBody struct {
 	Subject string
 }
 
-func InitTeacherService(ctx context.Context, db *gorm.DB) *TeacherService {
+func InitTeacherService(ctx *context.Context, db *gorm.DB) *TeacherService {
 	return &TeacherService{
 		Ctx: ctx,
 		Db:  db,
@@ -43,13 +43,14 @@ func (service *TeacherService) CreateUser(data *TeacherBody) (*models.TeacherTem
 			if err := query.QueryCreate(service.Db, &newTeacher); err != nil {
 				return nil, err
 			}
-			return &newTeacher, err
+			return &newTeacher, nil
 		}
 		return nil, err
 	}
-	teacherUpadate := models.TeacherTemp{
+	teacherUpdate := models.TeacherTemp{
 		TeacherBase: models.TeacherBase{
 			UserBase: models.UserBase{
+				ID:       teacherFind.ID,
 				UserName: data.Name,
 				Email:    data.Email,
 				Password: data.Password,
@@ -57,7 +58,7 @@ func (service *TeacherService) CreateUser(data *TeacherBody) (*models.TeacherTem
 			SubjectName: data.Subject,
 		},
 	}
-	_, err = gorm.G[models.TeacherTemp](service.Db).Where("id = ?", teacherFind.ID).Updates(service.Ctx, teacherUpadate)
+	err = service.Db.WithContext(*service.Ctx).Model(teacherFind).Where("id = ?", teacherFind.ID).Updates(&teacherUpdate).Error
 	if err != nil {
 		return nil, err
 	}
@@ -66,5 +67,5 @@ func (service *TeacherService) CreateUser(data *TeacherBody) (*models.TeacherTem
 	if err != nil {
 		return nil, err
 	}
-	return &teacherUpadate, nil
+	return &teacherUpdate, nil
 }

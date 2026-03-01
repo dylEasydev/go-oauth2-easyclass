@@ -16,7 +16,7 @@ func InitUserTempService(db *gorm.DB) *UsertempService {
 }
 
 // sauvegarde de user_temp en user
-func (service *UsertempService) SaveUser(user interfaces.UserTempInterafce) error {
+func (service *UsertempService) SaveUser(user interfaces.UserTempInterface) error {
 	if err := user.SavePerm(service.Db); err != nil {
 		return err
 	}

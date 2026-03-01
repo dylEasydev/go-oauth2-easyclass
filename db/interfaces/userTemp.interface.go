@@ -2,7 +2,7 @@ package interfaces
 
 import "gorm.io/gorm"
 
-type UserTempInterafce interface {
+type UserTempInterface interface {
 	UserInterface
 	SavePerm(tx *gorm.DB) error
 	DestroyUser(tx *gorm.DB) error

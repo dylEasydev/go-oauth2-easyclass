@@ -7,8 +7,8 @@ import (
 	"gorm.io/gorm"
 )
 
-func FindUserByName[T any](ctx context.Context, tx *gorm.DB, name, email string) (*T, error) {
-	user, err := gorm.G[T](tx).Where("user_name = ? or email = ?", name, email).First(ctx)
+func FindUserByName[T any](ctx *context.Context, tx *gorm.DB, name, email string) (*T, error) {
+	user, err := gorm.G[T](tx).Where("user_name = ? or email = ?", name, email).First(*ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -16,8 +16,8 @@ func FindUserByName[T any](ctx context.Context, tx *gorm.DB, name, email string)
 	return &user, nil
 }
 
-func FindUserById[T any](ctx context.Context, tx *gorm.DB, id uuid.UUID) (*T, error) {
-	user, err := gorm.G[T](tx).Where("id = ? ", id).First(ctx)
+func FindUserById[T any](ctx *context.Context, tx *gorm.DB, id uuid.UUID) (*T, error) {
+	user, err := gorm.G[T](tx).Where("id = ? ", id).First(*ctx)
 	if err != nil {
 		return nil, err
 	}

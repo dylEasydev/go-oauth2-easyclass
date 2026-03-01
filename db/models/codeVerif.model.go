@@ -1,7 +1,6 @@
 package models
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"time"
@@ -48,11 +47,25 @@ func (CodeVerif) TableName() string {
 
 // récupération de l'objet polymorphe scanner dans la base de leur héritage
 func (codeverif *CodeVerif) GetForeign(tx *gorm.DB) (interfaces.UserInterface, error) {
-	foreign := UserBase{}
+	var foreign interfaces.UserInterface
+
+	switch codeverif.VerifiableType {
+	case User{}.TableName():
+		var user User
+		foreign = &user
+	case TeacherWaiting{}.TableName():
+		var user TeacherWaiting
+		foreign = &user
+	case StudentTemp{}.TableName():
+		var user StudentTemp
+		foreign = &user
+	default:
+		return nil, fmt.Errorf("type inconu : %s", codeverif.VerifiableType)
+	}
 	if err := tx.Table(codeverif.VerifiableType).Select("id", "email", "user_name", "password").Where(map[string]any{"id": codeverif.VerifiableID}).Take(&foreign).Error; err != nil {
 		return nil, err
 	}
-	return &foreign, nil
+	return foreign, nil
 }
 
 // validation du model avant la sauvegarde
@@ -96,7 +109,7 @@ func (codeVerif *CodeVerif) AfterSave(tx *gorm.DB) (err error) {
 
 // verification de l'expiration
 func (codeverif *CodeVerif) IsExpired() bool {
-	return time.Now().UTC().Before(codeverif.ExpiresAt)
+	return time.Now().UTC().After(codeverif.ExpiresAt)
 }
 
 // verifier s'il est déjà utiliser
@@ -107,8 +120,7 @@ func (codeVerif *CodeVerif) IsUsed() bool {
 // marké un code déjà utiliser
 func (codeverif *CodeVerif) MarkUsed(tx *gorm.DB) error {
 	txSession := tx.Session(&gorm.Session{SkipHooks: true})
-	ctx := context.Background()
 	now := time.Now().UTC()
-	_, err := gorm.G[CodeVerif](txSession).Where(&CodeVerif{ID: codeverif.ID}).Updates(ctx, CodeVerif{UseAt: &now})
+	err := txSession.Model(codeverif).Where(&CodeVerif{ID: codeverif.ID}).Updates(&CodeVerif{UseAt: &now}).Error
 	return err
 }

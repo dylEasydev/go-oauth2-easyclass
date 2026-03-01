@@ -22,7 +22,8 @@ func SendVerificationCode(dest string, code string, name string) error {
 
 	expiredAt := time.Now().UTC().Add(1 * time.Hour).UTC()
 
-	plain := fmt.Sprintf("Bonjour,\n\nVotre code de vérification est : %s\n\nCe code expirera :%s .\n", code, expiredAt.Format("16h04"))
+	// use Go's reference time layout. "15" is the hour component (24‑hour clock).
+	plain := fmt.Sprintf("Bonjour,\n\nVotre code de vérification est : %s\n\nCe code expirera : %s.\n", code, expiredAt.Format("15h04"))
 
 	html := fmt.Sprintf(`
 	<!doctype html>
@@ -40,14 +41,15 @@ func SendVerificationCode(dest string, code string, name string) error {
 	<body>
 	  <div class="box">
 	    <h1>Code de Vérification</h1>
-	    <p>Bonjour,%s</p>
+	    <p>Salut ,%s</p>
 	    <p>Voici votre code de vérification :</p>
 	    <div class="code">%s</div>
-	    <p>Ce code est valable jusqu'à %s.</p>
-	    <p style="margin-top:20px; font-size:12px; color:#888;">&copy; 2025 MonApplication</p>
+	    <p>Ce code est valable jusqu'à %s  GMT.</p>
+	    <p style="margin-top:20px; font-size:12px; color:#888;">&copy; 2026 easy class</p>
 	  </div>
 	</body>
-	</html>`, name, code, expiredAt.Format("16h04"))
+	</html>`,
+		name, code, expiredAt.Format("15h04"))
 
 	m.SetBody("text/plain", plain)
 	m.AddAlternative("text/html", html)

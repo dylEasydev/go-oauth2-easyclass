@@ -11,11 +11,11 @@ import (
 )
 
 type CodeService struct {
-	Ctx context.Context
+	Ctx *context.Context
 	Db  *gorm.DB
 }
 
-func InitCodeService(ctx context.Context, db *gorm.DB) *CodeService {
+func InitCodeService(ctx *context.Context, db *gorm.DB) *CodeService {
 	return &CodeService{
 		Ctx: ctx,
 		Db:  db,
@@ -23,7 +23,7 @@ func InitCodeService(ctx context.Context, db *gorm.DB) *CodeService {
 }
 
 func (service *CodeService) FindCode(code string, id uuid.UUID) (*models.CodeVerif, error) {
-	codeVerif, err := gorm.G[models.CodeVerif](service.Db).Where(&models.CodeVerif{Code: code, VerifiableID: id}).First(service.Ctx)
+	codeVerif, err := gorm.G[models.CodeVerif](service.Db).Where(&models.CodeVerif{Code: code, VerifiableID: id}).First(*service.Ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrNotCode
@@ -34,7 +34,7 @@ func (service *CodeService) FindCode(code string, id uuid.UUID) (*models.CodeVer
 }
 
 func (service *CodeService) FindCodeTable(table string, id uuid.UUID) (*models.CodeVerif, error) {
-	codeVerif, err := gorm.G[models.CodeVerif](service.Db).Where(&models.CodeVerif{VerifiableType: table, VerifiableID: id}).First(service.Ctx)
+	codeVerif, err := gorm.G[models.CodeVerif](service.Db).Where(&models.CodeVerif{VerifiableType: table, VerifiableID: id}).First(*service.Ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrNotCode
@@ -49,7 +49,7 @@ func (service *CodeService) UpdateCodeVerif(user interfaces.UserInterface, code 
 	if beforeCode == nil {
 		return err
 	}
-	_, err = gorm.G[models.CodeVerif](service.Db).Where("id = ?", beforeCode.ID).Updates(service.Ctx, *beforeCode)
+	err = service.Db.WithContext(*service.Ctx).Model(beforeCode).Where("id = ?", beforeCode.ID).Updates(beforeCode).Error
 	if err != nil {
 		return err
 	}

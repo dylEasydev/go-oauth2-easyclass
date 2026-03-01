@@ -3,6 +3,7 @@ package controller
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/dylEasydev/go-oauth2-easyclass/db/interfaces"
@@ -11,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type CodeBody struct {
@@ -47,7 +49,7 @@ func (s *StoreRequest) VerifCode(ctx *gin.Context) {
 	}
 	codeHash := utils.GenerateHash(codeBody.Code)
 
-	codeservice := service.InitCodeService(context, s.Store.GetDb())
+	codeservice := service.InitCodeService(&context, s.Store.GetDb())
 
 	codeVerif, err := codeservice.FindCode(codeHash, id)
 	if err != nil {
@@ -74,7 +76,8 @@ func (s *StoreRequest) VerifCode(ctx *gin.Context) {
 		return
 	}
 
-	userTemp, ok := user.(interfaces.UserTempInterafce)
+	log.Printf("%T", user)
+	userTemp, ok := user.(interfaces.UserTempInterface)
 	if !ok {
 		httpErr := utils.HttpErrors{Status: http.StatusBadRequest, Message: "end-point réservé au utilisateur en attente"}
 		ctx.Error(&httpErr)
@@ -113,9 +116,14 @@ func (s *StoreRequest) RestartCode(ctx *gin.Context) {
 		return
 	}
 
-	codeservice := service.InitCodeService(context, s.Store.GetDb())
+	codeservice := service.InitCodeService(&context, s.Store.GetDb())
 	user, err := codeservice.GetForeignByName(codeUri.TableName, codeUri.UserName)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			httpErr := utils.HttpErrors{Status: http.StatusBadRequest, Message: err.Error()}
+			ctx.Error(&httpErr)
+			return
+		}
 		httpErr := utils.HttpErrors{Status: http.StatusInternalServerError, Message: err.Error()}
 		ctx.Error(&httpErr)
 		return

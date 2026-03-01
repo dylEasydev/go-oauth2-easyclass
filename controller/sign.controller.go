@@ -40,7 +40,7 @@ func (s *StoreRequest) SignTeacher(ctx *gin.Context) {
 	}
 
 	//recherche parmis la table des utilisateur
-	userFind, err := service.FindUserByName[models.User](context, s.Store.GetDb(), bodyTeacher.UserName, bodyTeacher.Email)
+	userFind, err := service.FindUserByName[models.User](&context, s.Store.GetDb(), bodyTeacher.UserName, bodyTeacher.Email)
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			httpErr := utils.HttpErrors{Message: err.Error(), Status: http.StatusInternalServerError}
@@ -56,7 +56,7 @@ func (s *StoreRequest) SignTeacher(ctx *gin.Context) {
 
 	// recherche parmi la table des enseignant  temportaire
 
-	teacherFind, err := service.FindUserByName[models.TeacherWaiting](context, s.Store.GetDb(), bodyTeacher.UserName, bodyTeacher.Email)
+	teacherFind, err := service.FindUserByName[models.TeacherWaiting](&context, s.Store.GetDb(), bodyTeacher.UserName, bodyTeacher.Email)
 
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -71,7 +71,7 @@ func (s *StoreRequest) SignTeacher(ctx *gin.Context) {
 		ctx.Error(&httpErr)
 		return
 	}
-	teacherService := service.InitTeacherService(context, s.Store.GetDb())
+	teacherService := service.InitTeacherService(&context, s.Store.GetDb())
 	data := service.TeacherBody{
 		UserBody: service.UserBody{
 			Name:     bodyTeacher.UserName,
@@ -89,6 +89,7 @@ func (s *StoreRequest) SignTeacher(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"sucess":  true,
 		"message": fmt.Sprintf("verifier votre mail %s @%s", newTeacher.Email, newTeacher.UserName),
+		"id_user": newTeacher.GetId().String(),
 	})
 }
 
@@ -103,7 +104,7 @@ func (s *StoreRequest) SignStudent(ctx *gin.Context) {
 		return
 	}
 
-	userFind, err := service.FindUserByName[models.User](context, s.Store.GetDb(), bodyStudent.UserName, bodyStudent.Email)
+	userFind, err := service.FindUserByName[models.User](&context, s.Store.GetDb(), bodyStudent.UserName, bodyStudent.Email)
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			httpErr := utils.HttpErrors{Message: err.Error(), Status: http.StatusInternalServerError}
@@ -119,7 +120,7 @@ func (s *StoreRequest) SignStudent(ctx *gin.Context) {
 
 	// recherche parmi la table des enseignant  temportaire
 
-	teacherFind, err := service.FindUserByName[models.TeacherWaiting](context, s.Store.GetDb(), bodyStudent.UserName, bodyStudent.Email)
+	teacherFind, err := service.FindUserByName[models.TeacherWaiting](&context, s.Store.GetDb(), bodyStudent.UserName, bodyStudent.Email)
 
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -135,7 +136,7 @@ func (s *StoreRequest) SignStudent(ctx *gin.Context) {
 		return
 	}
 
-	studentService := service.InitStudentService(context, s.Store.GetDb())
+	studentService := service.InitStudentService(&context, s.Store.GetDb())
 	data := service.UserBody{
 		Name:     bodyStudent.UserName,
 		Email:    bodyStudent.Email,
@@ -150,6 +151,7 @@ func (s *StoreRequest) SignStudent(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"sucess":  true,
 		"message": fmt.Sprintf("verifier votre mail %s @%s", newStudent.Email, newStudent.UserName),
+		"id_user": newStudent.GetId().String(),
 	})
 }
 
@@ -177,7 +179,7 @@ func (s *StoreRequest) SignAdmin(ctx *gin.Context) {
 	}
 
 	//recherche parmis la table des utilisateur
-	userFind, err := service.FindUserByName[models.User](context, s.Store.GetDb(), bodyUser.UserName, bodyUser.Email)
+	userFind, err := service.FindUserByName[models.User](&context, s.Store.GetDb(), bodyUser.UserName, bodyUser.Email)
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			httpErr := utils.HttpErrors{Message: err.Error(), Status: http.StatusInternalServerError}
@@ -193,7 +195,7 @@ func (s *StoreRequest) SignAdmin(ctx *gin.Context) {
 
 	// recherche parmi la table des enseignant  temportaire
 
-	teacherFind, err := service.FindUserByName[models.TeacherWaiting](context, s.Store.GetDb(), bodyUser.UserName, bodyUser.Email)
+	teacherFind, err := service.FindUserByName[models.TeacherWaiting](&context, s.Store.GetDb(), bodyUser.UserName, bodyUser.Email)
 
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -208,7 +210,7 @@ func (s *StoreRequest) SignAdmin(ctx *gin.Context) {
 		ctx.Error(&httpErr)
 		return
 	}
-	userService := service.InitUserService(context, s.Store.GetDb())
+	userService := service.InitUserService(&context, s.Store.GetDb())
 	data := service.UserBody{
 		Name:     bodyUser.UserName,
 		Email:    bodyUser.Email,
@@ -224,5 +226,6 @@ func (s *StoreRequest) SignAdmin(ctx *gin.Context) {
 		"sucess":  true,
 		"message": fmt.Sprintf("Bienvenu admin  @%s", newUser.UserName),
 		"data":    newUser,
+		"id_user": newUser.GetId().String(),
 	})
 }
