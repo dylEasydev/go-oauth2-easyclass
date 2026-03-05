@@ -41,7 +41,7 @@ func (store *Store) GetOpenIDConnectSession(ctx context.Context, authorizeCode s
 
 	//intialisation du fosite Request
 	rq := &fosite.Request{
-		ID:                authorizeCodeModel.ID.String(),
+		ID:                authorizeCodeModel.RequestId,
 		RequestedAt:       authorizeCodeModel.RequestedAt,
 		Client:            &authorizeCodeModel.Client,
 		RequestedScope:    fosite.Arguments(authorizeCodeModel.RequestedScopes),

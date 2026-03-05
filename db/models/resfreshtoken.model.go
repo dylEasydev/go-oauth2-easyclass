@@ -21,6 +21,7 @@ type RefreshToken struct {
 	AccessSignature string `gorm:"uniqueIndex:idx_signature;not null"`
 
 	RequestedAt time.Time `gorm:"not null"`
+	RequestId   string    `grom:"type:uuid;not null;index"`
 
 	//permission et grant_types demandés dans la requêtes
 	RequestedScopes pq.StringArray `gorm:"type:text[]"`

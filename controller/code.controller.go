@@ -3,14 +3,12 @@ package controller
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/dylEasydev/go-oauth2-easyclass/db/interfaces"
 	"github.com/dylEasydev/go-oauth2-easyclass/db/service"
 	"github.com/dylEasydev/go-oauth2-easyclass/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -42,7 +40,7 @@ func (s *StoreRequest) VerifCode(ctx *gin.Context) {
 		return
 	}
 
-	if err := ctx.ShouldBindWith(&codeBody, binding.JSON); err != nil {
+	if err := ctx.ShouldBind(&codeBody); err != nil {
 		httpErr := utils.HttpErrors{Status: http.StatusBadRequest, Message: err.Error()}
 		ctx.Error(&httpErr)
 		return
@@ -76,7 +74,6 @@ func (s *StoreRequest) VerifCode(ctx *gin.Context) {
 		return
 	}
 
-	log.Printf("%T", user)
 	userTemp, ok := user.(interfaces.UserTempInterface)
 	if !ok {
 		httpErr := utils.HttpErrors{Status: http.StatusBadRequest, Message: "end-point réservé au utilisateur en attente"}

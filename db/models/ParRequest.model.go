@@ -16,12 +16,14 @@ type PARRequest struct {
 	ID         uuid.UUID      `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	RequestURI string         `gorm:"uniqueIndex;not null"`
 	Form       datatypes.JSON `gorm:"type:jsonb"`
-	ExpiresAt  time.Time      `gorm:"index"`
+	ExpiresAt  time.Time      `gorm:"type:timestamptz;index"`
 	Used       bool           `gorm:"default:false;"`
 
 	//Permissions et Grant demandés
 	RequestedScopes pq.StringArray `gorm:"type:text[]"`
 	GrantedScopes   pq.StringArray `gorm:"type:text[]"`
+
+	RequestId string `grom:"type:uuid;not null;index"`
 
 	//Permissions et grant acceptés
 	RequestedAudience pq.StringArray `gorm:"type:text[]"`

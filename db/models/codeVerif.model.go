@@ -26,7 +26,7 @@ type CodeVerif struct {
 	rawCode string
 
 	//temps d'expiration du code de verification
-	ExpiresAt time.Time
+	ExpiresAt time.Time `gorm:"type:timestamptz"`
 
 	//temps d'utilisation
 	UseAt *time.Time
@@ -109,7 +109,7 @@ func (codeVerif *CodeVerif) AfterSave(tx *gorm.DB) (err error) {
 
 // verification de l'expiration
 func (codeverif *CodeVerif) IsExpired() bool {
-	return time.Now().UTC().After(codeverif.ExpiresAt)
+	return time.Now().UTC().After(codeverif.ExpiresAt.UTC())
 }
 
 // verifier s'il est déjà utiliser

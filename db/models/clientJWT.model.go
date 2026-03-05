@@ -15,7 +15,7 @@ type ClientJWT struct {
 	ID        uuid.UUID `gorm:"primaryKey;type:uuid;default:uuid_generate_v4()"`
 	Active    *bool     `gorm:"default:true"`
 	JTI       string    `gorm:"unique;not null;index"`
-	ExpiresAt time.Time
+	ExpiresAt time.Time `gorm:"type:timestamptz"`
 
 	//timestamps
 	CreatedAt time.Time
@@ -38,7 +38,7 @@ func (c *ClientJWT) BeforeCreate(tx *gorm.DB) (err error) {
 
 // verifie si le clientJWt est expiré
 func (c *ClientJWT) IsExpired() bool {
-	return time.Now().UTC().Before(c.ExpiresAt)
+	return time.Now().UTC().After(c.ExpiresAt.UTC())
 }
 
 // verifie si le clientJWt estr encore valide

@@ -17,10 +17,6 @@ import (
 )
 
 func (store *Store) CreatePKCERequestSession(ctx context.Context, signature string, requester fosite.Requester) error {
-	parsedID, err := uuid.Parse(requester.GetID())
-	if err != nil {
-		return fmt.Errorf("request id invalide: %w", err)
-	}
 	client := requester.GetClient()
 
 	clientID, err := uuid.Parse(client.GetID())
@@ -35,12 +31,14 @@ func (store *Store) CreatePKCERequestSession(ctx context.Context, signature stri
 	}
 
 	session := requester.GetSession().(*models.Session)
-	if err = gorm.G[models.Session](store.db).Create(ctx, session); err != nil {
-		return fmt.Errorf("erreur de cration de la session: %w", err)
+	if err = store.db.WithContext(ctx).Clauses(clause.OnConflict{
+		UpdateAll: true,
+	}).Create(session).Error; err != nil {
+		return fmt.Errorf("erreur de persistence session: %w", err)
 	}
 
 	data := models.PKCE{
-		ID:                parsedID,
+		RequestId:         requester.GetID(),
 		Active:            utils.PtrBool(true),
 		Signature:         signature,
 		RequestedAt:       requester.GetRequestedAt().UTC(),
@@ -78,7 +76,7 @@ func (store *Store) GetPKCERequestSession(ctx context.Context, signature string,
 	}
 
 	rq := &fosite.Request{
-		ID:                result.ID.String(),
+		ID:                result.RequestId,
 		RequestedAt:       result.RequestedAt,
 		Client:            &result.Client,
 		RequestedScope:    fosite.Arguments(result.RequestedScopes),

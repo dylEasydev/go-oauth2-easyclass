@@ -37,7 +37,7 @@ func (a *Auth) AuthorizeHandler(c *gin.Context) {
 	}
 
 	form := Authorize{}
-	if err := c.ShouldBindWith(&form, binding.Query); err != nil {
+	if err := c.ShouldBindWith(&form, binding.Form); err != nil {
 		a.provider.WriteAuthorizeError(ctx, c.Writer, authorizeRequest, fosite.ErrInvalidRequest.WithHint(err.Error()))
 		return
 	}

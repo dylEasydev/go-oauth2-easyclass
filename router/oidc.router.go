@@ -20,7 +20,7 @@ func (r *router) OIDCRouter() {
 
 	{
 		oidcGroup.POST("/authorize", auth.AuthorizeHandler)
-		oidcGroup.GET("/authrize", auth.AuthorizeHandler)
+		oidcGroup.GET("/authorize", auth.AuthorizeHandler)
 		oidcGroup.POST("/token", auth.TokenHandler)
 		oidcGroup.POST("/revoke", auth.RevokeHandler)
 		oidcGroup.POST("/par", auth.PARRequestHandler)

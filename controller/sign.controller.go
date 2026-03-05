@@ -33,7 +33,7 @@ func (s *StoreRequest) SignTeacher(ctx *gin.Context) {
 
 	context := ctx.Request.Context()
 
-	if err := ctx.ShouldBindWith(&bodyTeacher, binding.JSON); err != nil {
+	if err := ctx.ShouldBind(&bodyTeacher); err != nil {
 		httpErr := utils.HttpErrors{Status: http.StatusBadRequest, Message: err.Error()}
 		ctx.Error(&httpErr)
 		return
@@ -98,7 +98,7 @@ func (s *StoreRequest) SignStudent(ctx *gin.Context) {
 
 	context := ctx.Request.Context()
 
-	if err := ctx.ShouldBindWith(&bodyStudent, binding.JSON); err != nil {
+	if err := ctx.ShouldBind(&bodyStudent); err != nil {
 		httpErr := utils.HttpErrors{Status: http.StatusBadRequest, Message: err.Error()}
 		ctx.Error(&httpErr)
 		return

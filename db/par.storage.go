@@ -19,10 +19,6 @@ import (
 //implementation de PARStorage
 
 func (store *Store) CreatePARSession(ctx context.Context, requestURI string, request fosite.AuthorizeRequester) error {
-	parsedID, err := uuid.Parse(request.GetID())
-	if err != nil {
-		return fmt.Errorf("request id invalide: %w", err)
-	}
 	client := request.GetClient()
 
 	clientID, err := uuid.Parse(client.GetID())
@@ -42,12 +38,14 @@ func (store *Store) CreatePARSession(ctx context.Context, requestURI string, req
 
 	session := request.GetSession().(*models.Session)
 
-	if err = gorm.G[models.Session](store.db).Create(ctx, session); err != nil {
-		return fmt.Errorf("erreur de création de la sesion pour PAR: %w", err)
+	if err = store.db.WithContext(ctx).Clauses(clause.OnConflict{
+		UpdateAll: true,
+	}).Create(session).Error; err != nil {
+		return fmt.Errorf("erreur de persistence session: %w", err)
 	}
 
 	data := models.PARRequest{
-		ID:                parsedID,
+		RequestId:         request.GetID(),
 		RequestURI:        requestURI,
 		RequestedAt:       request.GetRequestedAt().UTC(),
 		Form:              form,
@@ -90,7 +88,7 @@ func (store *Store) GetPARSession(ctx context.Context, requestURI string) (fosit
 	}
 	rq := &fosite.AuthorizeRequest{
 		Request: fosite.Request{
-			ID:                par.ID.String(),
+			ID:                par.RequestId,
 			RequestedAt:       par.RequestedAt,
 			Client:            &par.Client,
 			RequestedScope:    fosite.Arguments(par.RequestedScopes),
@@ -108,7 +106,7 @@ func (store *Store) GetPARSession(ctx context.Context, requestURI string) (fosit
 	if par.Used {
 		return rq, fosite.ErrInvalidRequest.WithHint("ce PAR request est déjà utilisé")
 	}
-	if time.Now().UTC().After(par.ExpiresAt) {
+	if time.Now().UTC().After(par.ExpiresAt.UTC()) {
 		return nil, fosite.ErrInvalidRequest.WithHint("ce PAR request est expiré.")
 	}
 

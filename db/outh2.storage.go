@@ -21,10 +21,6 @@ import (
 
 // AuthorizationStorage
 func (store *Store) CreateAuthorizeCodeSession(ctx context.Context, code string, request fosite.Requester) (err error) {
-	parsedID, err := uuid.Parse(request.GetID())
-	if err != nil {
-		return fmt.Errorf("request id invalide: %w", err)
-	}
 	client := request.GetClient()
 
 	clientID, err := uuid.Parse(client.GetID())
@@ -42,13 +38,15 @@ func (store *Store) CreateAuthorizeCodeSession(ctx context.Context, code string,
 	session := request.GetSession().(*models.Session)
 
 	//eneregistremment de la session en BD
-	if err = gorm.G[models.Session](store.db).Create(ctx, session); err != nil {
-		return fmt.Errorf("erreur de création de la sesion pour authorize code: %w", err)
+	if err = store.db.WithContext(ctx).Clauses(clause.OnConflict{
+		UpdateAll: true,
+	}).Create(session).Error; err != nil {
+		return fmt.Errorf("erreur de persistence session: %w", err)
 	}
 
 	//initialisation du code d'authorization
 	data := models.AuthorizationCode{
-		ID:                parsedID,
+		RequestId:         request.GetID(),
 		Active:            utils.PtrBool(true),
 		Code:              code,
 		RequestedAt:       request.GetRequestedAt().UTC(),
@@ -90,7 +88,7 @@ func (store *Store) GetAuthorizeCodeSession(ctx context.Context, code string, se
 
 	//initialisation de fosite Request
 	rq := &fosite.Request{
-		ID:                authorize_code.ID.String(),
+		ID:                authorize_code.RequestId,
 		RequestedAt:       authorize_code.RequestedAt,
 		Client:            &authorize_code.Client,
 		RequestedScope:    fosite.Arguments(authorize_code.RequestedScopes),
@@ -129,10 +127,6 @@ func (store *Store) InvalidateAuthorizeCodeSession(ctx context.Context, code str
 
 // AccessTokenStorage
 func (store *Store) CreateAccessTokenSession(ctx context.Context, signature string, request fosite.Requester) (err error) {
-	parsedID, err := uuid.Parse(request.GetID())
-	if err != nil {
-		return fmt.Errorf("request id invalide: %w", err)
-	}
 	client := request.GetClient()
 
 	clientID, err := uuid.Parse(client.GetID())
@@ -146,12 +140,14 @@ func (store *Store) CreateAccessTokenSession(ctx context.Context, signature stri
 	}
 
 	session := request.GetSession().(*models.Session)
-	if err = gorm.G[models.Session](store.db).Create(ctx, session); err != nil {
-		return fmt.Errorf("erreur de création de la sesion pour access_token: %w", err)
+	if err = store.db.WithContext(ctx).Clauses(clause.OnConflict{
+		UpdateAll: true,
+	}).Create(session).Error; err != nil {
+		return fmt.Errorf("erreur de persistence session: %w", err)
 	}
 
 	data := models.AccessToken{
-		ID:                parsedID,
+		RequestId:         request.GetID(),
 		Active:            utils.PtrBool(true),
 		Signature:         signature,
 		RequestedAt:       request.GetRequestedAt().UTC(),
@@ -188,7 +184,7 @@ func (store *Store) GetAccessTokenSession(ctx context.Context, signature string,
 	}
 
 	rq := &fosite.Request{
-		ID:                access_token.ID.String(),
+		ID:                access_token.RequestId,
 		RequestedAt:       access_token.RequestedAt,
 		Client:            &access_token.Client,
 		RequestedScope:    fosite.Arguments(access_token.RequestedScopes),
@@ -212,10 +208,6 @@ func (store *Store) DeleteAccessTokenSession(ctx context.Context, signature stri
 
 // RefreshTokenStorage
 func (store *Store) CreateRefreshTokenSession(ctx context.Context, signature string, accessSignature string, request fosite.Requester) (err error) {
-	parsedID, err := uuid.Parse(request.GetID())
-	if err != nil {
-		return fmt.Errorf("request id invalide: %w", err)
-	}
 	client := request.GetClient()
 
 	clientID, err := uuid.Parse(client.GetID())
@@ -229,12 +221,14 @@ func (store *Store) CreateRefreshTokenSession(ctx context.Context, signature str
 	}
 
 	session := request.GetSession().(*models.Session)
-	if err = gorm.G[models.Session](store.db).Create(ctx, session); err != nil {
-		return fmt.Errorf("erreur de création de la session: %w", err)
+	if err = store.db.WithContext(ctx).Clauses(clause.OnConflict{
+		UpdateAll: true,
+	}).Create(session).Error; err != nil {
+		return fmt.Errorf("erreur de persistence session: %w", err)
 	}
 
 	data := models.RefreshToken{
-		ID:                parsedID,
+		RequestId:         request.GetID(),
 		Active:            utils.PtrBool(true),
 		Signature:         signature,
 		AccessSignature:   accessSignature,
@@ -272,7 +266,7 @@ func (store *Store) GetRefreshTokenSession(ctx context.Context, signature string
 	}
 
 	rq := &fosite.Request{
-		ID:                result.ID.String(),
+		ID:                result.RequestId,
 		RequestedAt:       result.RequestedAt,
 		Client:            &result.Client,
 		RequestedScope:    fosite.Arguments(result.RequestedScopes),

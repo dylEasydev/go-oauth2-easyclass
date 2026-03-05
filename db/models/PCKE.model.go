@@ -16,8 +16,10 @@ type PKCE struct {
 	Active    *bool     `gorm:"default:true"`
 	Signature string    `gorm:"uniqueIndex;not null"`
 
-	RequestedAt time.Time
-	ExpiresAt   time.Time `gorm:"index"`
+	RequestId string `grom:"type:uuid;not null;index"`
+
+	RequestedAt time.Time `gorm:"type:timestamptz"`
+	ExpiresAt   time.Time `gorm:"type:timestamptz;index"`
 	Used        bool      `gorm:"default:false"`
 
 	RequestedScopes pq.StringArray `gorm:"type:text[]"`

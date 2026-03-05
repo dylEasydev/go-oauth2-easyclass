@@ -23,8 +23,8 @@ type AccessToken struct {
 	RequestedScopes pq.StringArray `gorm:"type:text[]"`
 	GrantedScopes   pq.StringArray `gorm:"type:text[]"`
 
-	Form datatypes.JSON `gorm:"type:jsonb;default:null"`
-
+	Form      datatypes.JSON `gorm:"type:jsonb;default:null"`
+	RequestId string         `grom:"type:uuid;not null;index"`
 	//permissions et grant_types accordé
 	RequestedAudience pq.StringArray `gorm:"type:text[]"`
 	GrantedAudience   pq.StringArray `gorm:"type:text[]"`

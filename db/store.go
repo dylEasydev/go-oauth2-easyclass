@@ -43,7 +43,7 @@ func InitDB(db *gorm.DB) error {
 		return err
 	}
 
-	//création de l'emsble des scopes pour le bulk create
+	//création de l'ensemble des scopes pour le bulk create
 	scopes := make([]models.Scope, 0, len(data.Data))
 	for _, elem := range data.Data {
 		scopes = append(scopes, models.Scope{

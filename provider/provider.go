@@ -21,17 +21,22 @@ func InitProvider(store *db.Store, key *rsa.PrivateKey) fosite.OAuth2Provider {
 	conf := &fosite.Config{
 		GlobalSecret: secret,
 
-		AccessTokenLifespan:                 1 * time.Hour,
-		RefreshTokenLifespan:                24 * time.Hour,
-		AuthorizeCodeLifespan:               5 * time.Minute,
-		VerifiableCredentialsNonceLifespan:  1 * time.Hour,
-		IDTokenLifespan:                     1 * time.Hour,
-		EnforcePKCE:                         true,
+		AccessTokenLifespan:                1 * time.Hour,
+		RefreshTokenLifespan:               24 * time.Hour,
+		AuthorizeCodeLifespan:              5 * time.Minute,
+		VerifiableCredentialsNonceLifespan: 1 * time.Hour,
+		IDTokenLifespan:                    1 * time.Hour,
+		EnforcePKCE:                        true,
+		//deja le prefix par default
+		PushedAuthorizeRequestURIPrefix:     "urn:ietf:params:oauth:request_uri:",
 		GrantTypeJWTBearerCanSkipClientAuth: false,
-		EnablePKCEPlainChallengeMethod:      true,
-		IDTokenIssuer:                       "easy-class",
-		PushedAuthorizeContextLifespan:      5 * time.Minute,
-		SendDebugMessagesToClients:          true,
+		//methode plain quand le client n'as pas fournis
+		// le code_challenge_method
+		EnablePKCEPlainChallengeMethod: true,
+		IDTokenIssuer:                  "easy-class",
+		PushedAuthorizeContextLifespan: 5 * time.Minute,
+		SendDebugMessagesToClients:     true,
+		MinParameterEntropy:            8,
 	}
 
 	return compose.Compose(

@@ -19,6 +19,9 @@ type AuthorizationCode struct {
 	//code d'authorization unique
 	Code string `gorm:"uniqueIndex;not null"`
 
+	//identifiant de la request
+	RequestId string `grom:"type:uuid;not null;index"`
+
 	//temps d'émission de la requête
 	RequestedAt time.Time
 
