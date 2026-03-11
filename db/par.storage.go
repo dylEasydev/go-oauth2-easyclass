@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dylEasydev/go-oauth2-easyclass/db/models"
+	"github.com/dylEasydev/go-oauth2-easyclass/utils"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/ory/fosite"
@@ -57,6 +58,9 @@ func (store *Store) CreatePARSession(ctx context.Context, requestURI string, req
 		GrantedAudience:   pq.StringArray(request.GetGrantedAudience()),
 		RedirectURI:       redirectUri,
 		ResponseMode:      string(request.GetResponseMode()),
+		ResponseTypes:     pq.StringArray(request.GetResponseTypes()),
+		ExpiresAt:         time.Now().Add(utils.PushedTime).UTC(),
+		State:             request.GetState(),
 	}
 
 	if err = gorm.G[models.PARRequest](store.db).Create(ctx, &data); err != nil {
@@ -67,8 +71,7 @@ func (store *Store) CreatePARSession(ctx context.Context, requestURI string, req
 }
 
 func (store *Store) GetPARSession(ctx context.Context, requestURI string) (fosite.AuthorizeRequester, error) {
-
-	par, err := gorm.G[models.PARRequest](store.db).Joins(clause.JoinTarget{Association: "Client"}, nil).Joins(clause.JoinTarget{Association: "Session"}, nil).Joins(clause.JoinTarget{Association: "Session.User"}, nil).Where(&models.PARRequest{RequestURI: requestURI}).First(ctx)
+	par, err := gorm.G[models.PARRequest](store.db).Joins(clause.JoinTarget{Association: "Client"}, nil).Joins(clause.JoinTarget{Association: "Session"}, nil).Where(&models.PARRequest{RequestURI: requestURI}).First(ctx)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fosite.ErrNotFound
@@ -98,18 +101,19 @@ func (store *Store) GetPARSession(ctx context.Context, requestURI string) (fosit
 			RequestedAudience: fosite.Arguments(par.RequestedAudience),
 			GrantedAudience:   fosite.Arguments(par.GrantedAudience),
 		},
-		ResponseTypes: par.Client.GetResponseTypes(),
+		ResponseTypes: fosite.Arguments(par.ResponseTypes),
 		RedirectURI:   &redirectUri,
 		ResponseMode:  fosite.ResponseModeType(par.ResponseMode),
+		State:         par.State,
 	}
 
 	if par.Used {
-		return rq, fosite.ErrInvalidRequest.WithHint("ce PAR request est déjà utilisé")
-	}
-	if time.Now().UTC().After(par.ExpiresAt.UTC()) {
-		return nil, fosite.ErrInvalidRequest.WithHint("ce PAR request est expiré.")
+		return rq, fosite.ErrInvalidRequest.WithDebug("ce PAR request est déjà utilisé")
 	}
 
+	if time.Now().UTC().After(par.ExpiresAt.UTC()) {
+		return rq, fosite.ErrInvalidRequest.WithDebug("ce PAR request est expire")
+	}
 	return rq, nil
 }
 

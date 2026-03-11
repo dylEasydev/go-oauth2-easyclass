@@ -18,8 +18,8 @@ var Validate *validator.Validate
 var SliceValidation = map[string][]string{
 	"roles":           {"admin", "teacher", "student"},
 	"tableName":       {"user", "teacher_temp", "student_temps"},
-	"grantValid":      {"code", "token", "code token", "client_credentials", "password"},
-	"responsesValid":  {"code", "token", "code token", "implicit"},
+	"grantValid":      {"authorization_code", "client_credentials", "password", "refresh_token", "implicit"},
+	"responsesValid":  {"code", "token", "code token", "id_token"},
 	"nameAppValid":    {"web app", "mobil app", "desktop app"},
 	"authMethodValid": {"client_secret_basic", "client_secret_post", "none", "private_key_jwt"},
 }

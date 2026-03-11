@@ -37,6 +37,9 @@ func InitProvider(store *db.Store, key *rsa.PrivateKey) fosite.OAuth2Provider {
 		PushedAuthorizeContextLifespan: 5 * time.Minute,
 		SendDebugMessagesToClients:     true,
 		MinParameterEntropy:            8,
+
+		// pour ommetre les scopes accorde lors de la requete dans url de redirection
+		OmitRedirectScopeParam: false,
 	}
 
 	return compose.Compose(

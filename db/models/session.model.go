@@ -81,6 +81,18 @@ func NewSession(
 	return session, nil
 }
 
+func NewParSession(clientId string) (*Session, error) {
+	idClient, err := uuid.Parse(clientId)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Session{
+		ClientID: idClient,
+		AuthTime: time.Now().UTC(),
+	}, nil
+}
+
 func (s *Session) SetSubject(subject string) {
 	s.Subject = subject
 }

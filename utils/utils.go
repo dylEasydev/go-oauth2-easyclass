@@ -5,8 +5,12 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"net/url"
 	"os"
 	"path"
+	"strings"
+
+	"github.com/ory/fosite"
 )
 
 func PtrBool(val bool) *bool {
@@ -14,7 +18,7 @@ func PtrBool(val bool) *bool {
 }
 
 // intersection des scopes de client et d'utilisateur
-func IntersectScopes(clientScopes, userScopes []string) []string {
+func IntersectScopes(clientScopes fosite.Arguments, userScopes []string) []string {
 	result := make([]string, len(clientScopes))
 	setScopes := make(map[string]bool, len(userScopes))
 
@@ -76,4 +80,8 @@ func LoadPublicKey(fileName string) (*rsa.PublicKey, error) {
 	default:
 		return nil, fmt.Errorf("la clé publicn'est pas de type RSA ")
 	}
+}
+
+func GetScopes(form url.Values) []string {
+	return strings.Split(form.Get("scopes"), " ")
 }

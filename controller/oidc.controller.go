@@ -5,7 +5,6 @@ import (
 	"github.com/dylEasydev/go-oauth2-easyclass/db/models"
 	"github.com/dylEasydev/go-oauth2-easyclass/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
 	"github.com/ory/fosite"
 )
 
@@ -15,9 +14,8 @@ type Auth struct {
 }
 
 type Authorize struct {
-	UserName string   `form:"name" json:"name" binding:"required,name"`
-	Password string   `form:"password" json:"password" binding:"required,min=8,password"`
-	Scopes   []string `form:"scopes" json:"scopes"`
+	UserName string `form:"name" json:"name" binding:"required,name"`
+	Password string `form:"password" json:"password" binding:"required,min=8,password"`
 }
 
 func NewAuth(provider fosite.OAuth2Provider, store *db.Store) *Auth {
@@ -37,7 +35,7 @@ func (a *Auth) AuthorizeHandler(c *gin.Context) {
 	}
 
 	form := Authorize{}
-	if err := c.ShouldBindWith(&form, binding.Form); err != nil {
+	if err := c.ShouldBind(&form); err != nil {
 		a.provider.WriteAuthorizeError(ctx, c.Writer, authorizeRequest, fosite.ErrInvalidRequest.WithHint(err.Error()))
 		return
 	}
@@ -59,7 +57,8 @@ func (a *Auth) AuthorizeHandler(c *gin.Context) {
 		userScopes = append(userScopes, scopes.ScopeName)
 	}
 
-	grantScopes := utils.IntersectScopes(form.Scopes, userScopes)
+	scopes := utils.GetScopes(authorizeRequest.GetRequestForm())
+	grantScopes := utils.IntersectScopes(scopes, userScopes)
 
 	for _, scope := range grantScopes {
 		authorizeRequest.GrantScope(scope)
@@ -75,6 +74,7 @@ func (a *Auth) AuthorizeHandler(c *gin.Context) {
 		a.provider.WriteAuthorizeError(ctx, c.Writer, authorizeRequest, err)
 		return
 	}
+
 	response, err := a.provider.NewAuthorizeResponse(ctx, authorizeRequest, session)
 	if err != nil {
 		a.provider.WriteAuthorizeError(ctx, c.Writer, authorizeRequest, err)
@@ -116,8 +116,12 @@ func (a *Auth) PARRequestHandler(c *gin.Context) {
 		a.provider.WritePushedAuthorizeError(ctx, c.Writer, parRequest, err)
 		return
 	}
-
-	response, err := a.provider.NewPushedAuthorizeResponse(ctx, parRequest, new(models.Session))
+	session, err := models.NewParSession(parRequest.GetClient().GetID())
+	if err != nil {
+		a.provider.WritePushedAuthorizeError(ctx, c.Writer, parRequest, err)
+		return
+	}
+	response, err := a.provider.NewPushedAuthorizeResponse(ctx, parRequest, session)
 	if err != nil {
 		a.provider.WritePushedAuthorizeError(ctx, c.Writer, parRequest, err)
 		return

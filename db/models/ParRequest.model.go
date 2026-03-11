@@ -31,8 +31,11 @@ type PARRequest struct {
 
 	RequestedAt time.Time
 
-	RedirectURI  datatypes.JSON `gorm:"type:jsonb"`
-	ResponseMode string
+	RedirectURI   datatypes.JSON `gorm:"type:jsonb"`
+	ResponseMode  string
+	ResponseTypes pq.StringArray `gorm:"type:text[]" validate:"required,responseallowed"`
+
+	State string
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
